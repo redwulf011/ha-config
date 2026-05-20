@@ -1,0 +1,313 @@
+
+- id: "algo_sofortladen"
+  alias: "ALGO - Zustand Sofortladen"
+  trigger:
+    - platform: homeassistant
+      event: start
+    - platform: state
+      entity_id: input_select.sim_betriebsart
+      to: "Sofortladen 16A"
+  action:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_actor_strom
+      data:
+        value: 16
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.sim_actor_wallbox
+
+- id: "algo_aus"
+  alias: "ALGO - Zustand Aus"
+  trigger:
+    - platform: homeassistant
+      event: start
+    - platform: state
+      entity_id: input_select.sim_betriebsart
+      to: "Aus"
+  action:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_actor_strom
+      data:
+        value: 6
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.sim_actor_wallbox
+
+- id: "reset_betriebsart"
+  alias: "Reset Betriebsart bei Stecker aus"
+  trigger:
+    - platform: state
+      entity_id: sensor.sim_eff_connector
+      to: "Available"
+  condition:
+    - condition: not
+      conditions:
+        - condition: state
+          entity_id: input_select.sim_betriebsart
+          state: "Ueberschussladen"
+  action:
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_betriebsart
+      data:
+        option: "Ueberschussladen"
+- id: "dynamisches_laden_anpassen"
+  alias: "DL - Strom dynamisch anpassen"
+  mode: restart
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      below: -0.3
+    - platform: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      above: 0.2
+    - platform: state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      to: "unavailable"
+    - platform: state
+      entity_id: switch.vestel_ev_charge_control
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: switch.vestel_ev_charge_control
+      state: "on"
+  action:
+    - repeat:
+        while:
+          - condition: state
+            entity_id: switch.vestel_ev_charge_control
+            state: "on"
+        sequence:
+          - variables:
+              surplus_kw: "{{ (states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0)) * -1 }}"
+              # Echter Batteriesensor: positive = entlädt (hilft), negative = lädt
+              battery_kw: "{{ [0, states('sensor.envoy_batterieleistung') | float(0)] | max }}"
+              # Verfügbare Leistung = Export + Batterieentladung
+              total_kw: "{{ (surplus_kw + battery_kw) | round(2) }}"
+              target_amps: >
+                {% set a = (total_kw * 1000 / 690) | round(0) | int %}
+                {% if a < 6 %}{{ 6 }}{% elif a > 16 %}{{ 16 }}{% else %}{{ a }}{% endif %}
+          - if:
+              - condition: template
+                value_template: "{{ target_amps | int != states('number.vestel_ev_maximum_current') | int(0) }}"
+            then:
+              - action: number.set_value
+                target:
+                  entity_id: number.vestel_ev_maximum_current
+                data:
+                  value: "{{ target_amps }}"
+          - delay:
+              seconds: 30
+          - condition: state
+            entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+            state: "on"
+
+- id: "dynamisches_laden_start"
+  alias: "DL - Start bei Solaruberschuss"
+  mode: restart
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      below: -1.5
+  condition:
+    - condition: state
+      entity_id: switch.vestel_ev_charge_control
+      state: "off"
+  action:
+    - delay:
+        seconds: 30
+    - condition: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      below: -1.5
+    - variables:
+        surplus_kw: "{{ (states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0)) * -1 }}"
+        start_amps: >
+          {% set a = (surplus_kw * 1000 / 690) | round(0) | int %}
+          {% if a < 6 %}{{ 6 }}{% elif a > 16 %}{{ 16 }}{% else %}{{ a }}{% endif %}
+    - action: number.set_value
+      target:
+        entity_id: number.vestel_ev_maximum_current
+      data:
+        value: "{{ start_amps }}"
+    - action: switch.turn_on
+      target:
+        entity_id: switch.vestel_ev_charge_control
+
+- id: "dynamisches_laden_stop"
+  alias: "DL - Stop bei wenig Sonne"
+  mode: restart
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      above: 0.1
+    - platform: state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      to: "unavailable"
+      for:
+        minutes: 2
+  condition:
+    - condition: state
+      entity_id: switch.vestel_ev_charge_control
+      state: "on"
+  action:
+    - delay:
+        seconds: 30
+    - choose:
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+              above: 0.1
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: switch.vestel_ev_charge_control
+        - conditions:
+            - condition: state
+              entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+              state: "unavailable"
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: switch.vestel_ev_charge_control
+
+- id: "sim_auto_sync_slider"
+  alias: "SIM - Auto Sync Slider"
+  trigger:
+    - platform: homeassistant
+      event: start
+    - platform: time_pattern
+      seconds: "/1"
+    - platform: state
+      entity_id: input_select.sim_modus_2
+      to: Auto
+  condition:
+    - condition: state
+      entity_id: input_select.sim_modus_2
+      state: Auto
+  action:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_pv_erzeugung
+      data:
+        value: "{{ states('sensor.envoy_122323101510_aktuelle_stromproduktion') | float(0) | round(2) }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_hausverbrauch
+      data:
+        value: "{{ states('sensor.envoy_122323101510_aktueller_stromverbrauch') | float(0) | round(2) }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_batterie_soc
+      data:
+        value: "{{ states('sensor.envoy_122323101510_batterie') | float(0) | round(0) }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_wallbox_strom
+      data:
+        value: "{{ states('number.vestel_ev_maximum_current') | float(0) | round(0) }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_netz
+      data:
+        value: "{{ states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) | round(2) }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_batterie_leistung
+      data:
+        value: "{{ states('sensor.envoy_batterieleistung') | float(0) | round(2) }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_s3_batterie
+      data:
+        value: "{{ states('sensor.envoy_batterieleistung') | float(0) | round(2) }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_s3_ueberschuss
+      data:
+        value: "{{ states('sensor.pv_uberschuss') | float(0) | round(2) }}"
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_connector
+      data:
+        option: "{{ states('sensor.vestel_ev_status_connector') }}"
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: switch.vestel_ev_charge_control
+              state: "on"
+          sequence:
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.sim_wallbox_ein
+        - conditions:
+            - condition: state
+              entity_id: switch.vestel_ev_charge_control
+              state: "off"
+          sequence:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.sim_wallbox_ein
+
+- id: "sim_modus_auto"
+  alias: "SIM - Modus Auto"
+  trigger:
+    - platform: state
+      entity_id: input_select.sim_modus_2
+      to: Auto
+  action:
+    - action: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.sim_man_pv
+          - input_boolean.sim_man_haus
+          - input_boolean.sim_man_soc
+          - input_boolean.sim_man_strom
+
+- id: "sim_modus_manual"
+  alias: "SIM - Modus Manual"
+  trigger:
+    - platform: state
+      entity_id: input_select.sim_modus_2
+      to: Manual
+  action:
+    - action: input_boolean.turn_on
+      target:
+        entity_id:
+          - input_boolean.sim_man_pv
+          - input_boolean.sim_man_haus
+          - input_boolean.sim_man_soc
+          - input_boolean.sim_man_strom
+
+- id: "sim_s3_sync"
+  alias: "SIM - S3 Sync"
+  trigger:
+    - platform: homeassistant
+      event: start
+    - platform: time_pattern
+      seconds: "/1"
+    - platform: state
+      entity_id: input_select.sim_s3_modus
+      to: Auto
+  condition:
+    - condition: state
+      entity_id: input_select.sim_s3_modus
+      state: Auto
+  action:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_s3_batterie
+      data:
+        value: "{{ states('sensor.envoy_batterieleistung') | float(0) | round(2) }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_s3_ueberschuss
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_connector
+      data:
+        option: "{{ states('sensor.vestel_ev_status_connector') }}"
+
+      data:
+        value: "{{ states('sensor.pv_uberschuss') | float(0) | round(2) }}"
