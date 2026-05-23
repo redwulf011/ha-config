@@ -288,7 +288,11 @@ template:
           {% set s = states('sensor.algorithmus_status') %}
           {% if s == 'Aus' %}AUS
           {% elif s == 'Sofortladen' %}SOF
-          {% elif s == 'Ueberschussladen' %}UEB
+          {% elif s == 'Ueberschussladen' %}
+            {% set sub = states('input_select.sim_algo_zustand') %}
+            {% if sub == 'Warte Überschuss' %}UEB_W
+            {% elif sub == 'Laden 6A' %}UEB_L
+            {% else %}UEB{% endif %}
           {% elif s == 'VollBisMorgen' %}VM
           {% else %}AUS{% endif %}
 

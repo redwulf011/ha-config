@@ -311,3 +311,88 @@
 
       data:
         value: "{{ states('sensor.pv_uberschuss') | float(0) | round(2) }}"
+
+# === SUB: Eingebetteter Zustandsautomat für Überschussladen ===
+
+- id: "sub_warte_zu_laden"
+  alias: "SUB - Warte → Laden 6A"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: input_select.sim_algo_zustand
+      to: "Warte Überschuss"
+    - platform: state
+      entity_id: sensor.sim_ueberschuss
+    - platform: state
+      entity_id: sensor.sim_eff_batterie
+  condition:
+    - condition: state
+      entity_id: input_select.sim_betriebsart_2
+      state: "Ueberschussladen"
+    - condition: state
+      entity_id: input_select.sim_algo_zustand
+      state: "Warte Überschuss"
+    - condition: template
+      value_template: >
+        {% set ueb = states('sensor.sim_ueberschuss') | float(0) %}
+        {% set bat = states('sensor.sim_eff_batterie') | float(0) %}
+        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
+        {% set net = ueb - bat %}
+        {% if soc < 80 %}
+          {{ net >= 4.24 }}
+        {% else %}
+          {{ net >= 4.14 }}
+        {% endif %}
+  action:
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_algo_zustand
+      data:
+        option: "Laden 6A"
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.sim_actor_wallbox
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_actor_strom
+      data:
+        value: 6
+
+- id: "sub_laden_zu_warte"
+  alias: "SUB - Laden 6A → Warte"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: input_select.sim_algo_zustand
+      to: "Laden 6A"
+    - platform: state
+      entity_id: sensor.sim_ueberschuss
+    - platform: state
+      entity_id: sensor.sim_eff_batterie
+  condition:
+    - condition: state
+      entity_id: input_select.sim_betriebsart_2
+      state: "Ueberschussladen"
+    - condition: state
+      entity_id: input_select.sim_algo_zustand
+      state: "Laden 6A"
+    - condition: template
+      value_template: >
+        {% set ueb = states('sensor.sim_ueberschuss') | float(0) %}
+        {% set bat = states('sensor.sim_eff_batterie') | float(0) %}
+        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
+        {% set net = ueb - bat %}
+        {% if soc < 80 %}
+          {{ net <= 4.14 }}
+        {% else %}
+          {{ net <= 4.04 }}
+        {% endif %}
+  action:
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_algo_zustand
+      data:
+        option: "Warte Überschuss"
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.sim_actor_wallbox
