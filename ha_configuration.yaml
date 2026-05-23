@@ -1,38 +1,128 @@
 # Loads default set of integrations. Do not remove.
 default_config:
-default_config:
-
 
 # Load frontend themes from the themes folder
 frontend:
-frontend:
   themes: !include_dir_merge_named themes
 
-
-automation: !include automations.yaml
 automation: !include automations.yaml
 script: !include scripts.yaml
-script: !include scripts.yaml
 scene: !include scenes.yaml
-scene: !include scenes.yaml
-
 
 template:
   - sensor:
       # Batterieleistung (kW) - berechnet
+      - name: "Envoy Batterieleistung"
+        unique_id: envoy_batterieleistung_v2
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set w = states('sensor.encharge_122312090301_leistung') | float(0) %}
+          {{ (w / 1000) | round(3) }}
+        availability: >
+          {{ states('sensor.encharge_122312090301_leistung') not in ['unavailable', 'none'] }}
 
       # Netzimport (nur positive Werte)
+      - name: "Netzimport Leistung"
+        unique_id: netzimport_leistung
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set n = states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) %}
+          {% if n > 0 %}{{ n }}{% else %}0{% endif %}
 
       # Netzeinspeisung (positive Werte, ursprünglich negative)
+      - name: "Netzeinspeisung Leistung"
+        unique_id: netzeinspeisung_leistung
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set n = states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) %}
+          {% if n < 0 %}{{ (n * -1) | round(3) }}{% else %}0{% endif %}
 
       # Batterieladung (nur negative Werte = laden, positiv dargestellt)
+      - name: "Batterieladung Leistung"
+        unique_id: batterieladung_leistung
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set b = states('sensor.envoy_batterieleistung') | float(0) %}
+          {% if b < 0 %}{{ (b * -1) | round(3) }}{% else %}0{% endif %}
 
       # Connector Status Deutsch
+      - name: "Fahrzeug Status"
+        unique_id: fahrzeug_status
+        state: >
+          {% set s = states('sensor.vestel_ev_status_connector') %}
+          {% set map = {
+            'Available': 'Nicht eingesteckt',
+            'Preparing': 'Eingesteckt',
+            'Charging': 'Lädt',
+            'Finishing': 'Beendet',
+            'SuspendedEV': 'Auto pausiert',
+            'SuspendedEVSE': 'Wallbox pausiert',
+            'Reserved': 'Reserviert',
+            'Unavailable': 'Nicht verfügbar',
+            'Faulted': 'Fehler'
+          } %}
+          {{ map.get(s, s) }}
+        icon: >
+          {% set s = states('sensor.vestel_ev_status_connector') %}
+          {% if s == 'Charging' %}mdi:ev-station{% elif s == 'Preparing' %}mdi:power-plug{% elif s == 'Available' %}mdi:power-plug-off{% else %}mdi:help-circle{% endif %}
 
       # Algorithmus-Überwachung
+      - name: "PV Überschuss"
+        unique_id: pv_ueberschuss
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set n = states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) %}
+          {% if n < 0 %}{{ (n * -1) | round(2) }}{% else %}0{% endif %}
 
+      - name: "Berechneter Zielstrom"
+        unique_id: berechneter_zielstrom
+        unit_of_measurement: "A"
+        state: >
+          {% set s = states('sensor.pv_uberschuss') | float(0) %}
+          {% set a = (s * 1000 / 690) | round(0) | int %}
+          {% if s < 0.7 %}0{% elif a < 6 %}6{% elif a > 16 %}16{% else %}{{ a }}{% endif %}
 
+      - name: "Algorithmus Phase"
+        unique_id: algorithmus_phase
+        state: >
+          {% set conn = states('sensor.vestel_ev_status_connector') %}
+          {% set laden = states('switch.vestel_ev_charge_control') %}
+          {% set netz = states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) %}
+          {% set ue = (netz * -1) | round(1) %}
+          {% if conn == 'Available' %}
+            {% if ue >= 1.5 and laden == 'off' %}🔌 Auto einstecken! {{ ue }}kW Überschuss{% else %}🔌 Nicht eingesteckt{% endif %}
+          {% elif laden == 'on' %}
+            {% if ue < 0.5 %}⚡ Lädt - Stopp bei <0,5kW (aktuell {{ ue }}kW){% else %}⚡ Lädt mit {{ states('number.vestel_ev_maximum_current') }}A bei {{ ue }}kW Überschuss{% endif %}
+          {% elif conn == 'Preparing' %}
+            {% if ue >= 1.5 %}⏳ Bereit - Start bei ≥1,5kW für 1 Min (aktuell {{ ue }}kW) - Zählt...{% else %}⏳ Bereit - Warte auf ≥1,5kW (aktuell {{ ue }}kW){% endif %}
+          {% elif conn == 'Charging' %}
+            ⚡ Lädt
+          {% elif conn == 'Finishing' %}
+            ✅ Fertig
+          {% else %}
+            ⏸️ Pausiert
+          {% endif %}
+        icon: >
+          {% set s = states('sensor.vestel_ev_status_connector') %}
+          {% if s == 'Charging' %}mdi:ev-station{% elif s == 'Preparing' %}mdi:power-plug{% elif s == 'Available' %}mdi:power-plug-off{% else %}mdi:help-circle{% endif %}
 
+      - name: "Einstecken Signal"
+        unique_id: einstecken_signal
+        state: >
+          {% set conn = states('sensor.vestel_ev_status_connector') %}
+          {% set netz = states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) %}
+          {% set ue = (netz * -1) | round(1) %}
+          {% if conn == 'Available' and ue >= 1.5 %}🔌 Einstecken!{% else %}✅{% endif %}
 
       # === Simulation: Effektive Werte (Auto/Manual via Modus) ===
       - name: "Sim Eff PV"
@@ -47,7 +137,6 @@ template:
             {{ states('sensor.envoy_122323101510_aktuelle_stromproduktion') | float(0) }}
           {% endif %}
 
-
       - name: "Sim Eff Haus"
         unique_id: sim_eff_haus
         unit_of_measurement: "kW"
@@ -59,7 +148,6 @@ template:
           {% else %}
             {{ states('sensor.envoy_122323101510_aktueller_stromverbrauch') | float(0) }}
           {% endif %}
-
 
       - name: "Sim Eff SoC"
         unique_id: sim_eff_soc
@@ -73,7 +161,6 @@ template:
             {{ states('sensor.envoy_122323101510_batterie') | float(0) }}
           {% endif %}
 
-
       - name: "Sim Eff Strom"
         unique_id: sim_eff_strom
         unit_of_measurement: "A"
@@ -84,7 +171,6 @@ template:
           {% else %}
             {{ states('number.vestel_ev_maximum_current') | float(0) }}
           {% endif %}
-
 
       # === Simulation Überschussladen (nutzt effektive Werte) ===
       - name: "Sim Ueberschuss"
@@ -99,7 +185,6 @@ template:
           {% if ein == 'off' %}{{ (pv - haus) | round(2) }}{% else %}
             {{ (pv - haus - auto) | round(2) }}{% endif %}
 
-
       - name: "Sim Zielstrom"
         unique_id: sim_zielstrom
         unit_of_measurement: "A"
@@ -113,14 +198,12 @@ template:
             {% set ziel = (basis * 1000 / 690) | round(0) | int %}
             {{ ziel }}{% endif %}
 
-
       - name: "Sim Endergebnis"
         unique_id: sim_endergebnis
         unit_of_measurement: "A"
         state: >
           {% set ziel = states('sensor.sim_zielstrom') | int(0) %}
           {% if ziel < 6 %}{{ 6 }}{% elif ziel > 16 %}{{ 16 }}{% else %}{{ ziel }}{% endif %}
-
 
       - name: "Sim Netzbezug"
         unique_id: sim_netzbezug
@@ -135,7 +218,19 @@ template:
           {% if ein == 'off' %}{{ (pv - haus) | round(2) }}{% else %}
             {{ (pv - haus - car) | round(2) }}{% endif %}
 
-
+      - name: "Algorithmus Zustand"
+        unique_id: algorithmus_zustand
+        state: >
+          {% set conn = states('sensor.vestel_ev_status_connector') %}
+          {% set laden = states('switch.vestel_ev_charge_control') %}
+          {% set netz = states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) %}
+          {% set ue = (netz * -1) | round(1) %}
+          {% if conn == 'Available' %}Leer{% elif conn == 'Finishing' or conn == 'Preparing' %}
+            {% if laden == 'on' and ue < 0.3 %}StopZaehler{% elif laden == 'on' %}Laden{% elif ue >= 1.5 %}StartZaehler{% else %}WartenSonne{% endif %}
+          {% elif laden == 'on' and ue < 0.3 %}StopZaehler{% elif laden == 'on' %}Laden{% elif laden == 'off' %}Aus{% else %}Unbekannt{% endif %}
+        icon: >
+          {% set z = states('sensor.algorithmus_zustand') %}
+          {% if z == 'Laden' %}mdi:ev-station{% elif z == 'StopZaehler' %}mdi:timer-outline{% elif z == 'StartZaehler' %}mdi:timer-play{% elif z == 'WartenSonne' %}mdi:weather-sunny-off{% elif z == 'Leer' %}mdi:power-plug-off{% else %}mdi:help-circle{% endif %}
 
       # === Batterie Effektiv ===
       - name: "Sim Eff Batterie"
@@ -150,7 +245,6 @@ template:
             {{ states('sensor.envoy_batterieleistung') | float(0) }}
           {% endif %}
 
-
       # === Connector Effektiv ===
       - name: "Sim Eff Connector"
         unique_id: sim_eff_connector
@@ -161,7 +255,6 @@ template:
           {% else %}
             {{ states('sensor.vestel_ev_status_connector') }}
           {% endif %}
-
 
       # === Schicht 3: Effektive Werte ===
       - name: "Sim S3 Eff Batterie"
@@ -176,7 +269,6 @@ template:
             {{ states('sensor.envoy_batterieleistung') | float(0) }}
           {% endif %}
 
-
       - name: "Sim S3 Eff Ueberschuss"
         unique_id: sim_s3_eff_ueberschuss
         unit_of_measurement: "kW"
@@ -188,8 +280,6 @@ template:
           {% else %}
             {{ states('sensor.pv_uberschuss') | float(0) }}
           {% endif %}
-
-
 
 
       - name: "Aktiver Knoten"
@@ -206,7 +296,6 @@ template:
           {% elif s == 'VollBisMorgen' %}VM
           {% else %}AUS{% endif %}
 
-
       # === Algorithmus Zustandsautomat ===
       - name: "Algorithmus Status"
         unique_id: algorithmus_status
@@ -218,7 +307,92 @@ template:
           {% elif bt == 'Voll bis Morgen' %}VollBisMorgen
           {% else %}Unbekannt{% endif %}
 
-
       # Batterieentladung (nur positive Werte)
+      - name: "Batterieentladung Leistung"
+        unique_id: batterieentladung_leistung
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set b = states('sensor.envoy_batterieleistung') | float(0) %}
+          {% if b > 0 %}{{ b }}{% else %}0{% endif %}
 
 sensor:
+  - platform: integration
+    name: "Produktion heute"
+    unique_id: produktion_heute
+    source: sensor.envoy_122323101510_aktuelle_stromproduktion
+    unit_time: h
+    round: 2
+    method: left
+
+  - platform: integration
+    name: "Verbrauch heute"
+    unique_id: verbrauch_heute
+    source: sensor.envoy_122323101510_aktueller_stromverbrauch
+    unit_time: h
+    round: 2
+    method: left
+
+  - platform: integration
+    name: "Netzimport heute"
+    unique_id: netzimport_heute
+    source: sensor.netzimport_leistung
+    unit_time: h
+    round: 2
+    method: left
+
+  - platform: integration
+    name: "Netzeinspeisung heute"
+    unique_id: netzeinspeisung_heute
+    source: sensor.netzeinspeisung_leistung
+    unit_time: h
+    round: 2
+    method: left
+
+  - platform: integration
+    name: "Batterieladung heute"
+    unique_id: batterieladung_heute
+    source: sensor.batterieladung_leistung
+    unit_time: h
+    round: 2
+    method: left
+
+  - platform: integration
+    name: "Batterieentladung heute"
+    unique_id: batterieentladung_heute
+    source: sensor.batterieentladung_leistung
+    unit_time: h
+    round: 2
+    method: left
+
+  - platform: integration
+    name: "Wallbox heute"
+    unique_id: wallbox_heute
+    source: sensor.vestel_ev_power_active_import
+    unit_time: h
+    round: 2
+    method: left
+
+utility_meter:
+  produktion_tag:
+    source: sensor.produktion_heute
+    cycle: daily
+  verbrauch_tag:
+    source: sensor.verbrauch_heute
+    cycle: daily
+  netzimport_tag:
+    source: sensor.netzimport_heute
+    cycle: daily
+  netzeinspeisung_tag:
+    source: sensor.netzeinspeisung_heute
+    cycle: daily
+  batterieladung_tag:
+    source: sensor.batterieladung_heute
+    cycle: daily
+  batterieentladung_tag:
+    source: sensor.batterieentladung_heute
+    cycle: daily
+  wallbox_tag:
+    source: sensor.wallbox_heute
+    cycle: daily

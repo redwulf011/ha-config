@@ -53,6 +53,125 @@
         entity_id: input_select.sim_betriebsart
       data:
         option: "Ueberschussladen"
+- id: "dynamisches_laden_anpassen"
+  alias: "DL - Strom dynamisch anpassen"
+  mode: restart
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      below: -0.3
+    - platform: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      above: 0.2
+    - platform: state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      to: "unavailable"
+    - platform: state
+      entity_id: switch.vestel_ev_charge_control
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: switch.vestel_ev_charge_control
+      state: "on"
+  action:
+    - repeat:
+        while:
+          - condition: state
+            entity_id: switch.vestel_ev_charge_control
+            state: "on"
+        sequence:
+          - variables:
+              surplus_kw: "{{ (states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0)) * -1 }}"
+              # Echter Batteriesensor: positive = entlädt (hilft), negative = lädt
+              battery_kw: "{{ [0, states('sensor.envoy_batterieleistung') | float(0)] | max }}"
+              # Verfügbare Leistung = Export + Batterieentladung
+              total_kw: "{{ (surplus_kw + battery_kw) | round(2) }}"
+              target_amps: >
+                {% set a = (total_kw * 1000 / 690) | round(0) | int %}
+                {% if a < 6 %}{{ 6 }}{% elif a > 16 %}{{ 16 }}{% else %}{{ a }}{% endif %}
+          - if:
+              - condition: template
+                value_template: "{{ target_amps | int != states('number.vestel_ev_maximum_current') | int(0) }}"
+            then:
+              - action: number.set_value
+                target:
+                  entity_id: number.vestel_ev_maximum_current
+                data:
+                  value: "{{ target_amps }}"
+          - delay:
+              seconds: 30
+          - condition: state
+            entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+            state: "on"
+
+- id: "dynamisches_laden_start"
+  alias: "DL - Start bei Solaruberschuss"
+  mode: restart
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      below: -1.5
+  condition:
+    - condition: state
+      entity_id: switch.vestel_ev_charge_control
+      state: "off"
+  action:
+    - delay:
+        seconds: 30
+    - condition: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      below: -1.5
+    - variables:
+        surplus_kw: "{{ (states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0)) * -1 }}"
+        start_amps: >
+          {% set a = (surplus_kw * 1000 / 690) | round(0) | int %}
+          {% if a < 6 %}{{ 6 }}{% elif a > 16 %}{{ 16 }}{% else %}{{ a }}{% endif %}
+    - action: number.set_value
+      target:
+        entity_id: number.vestel_ev_maximum_current
+      data:
+        value: "{{ start_amps }}"
+    - action: switch.turn_on
+      target:
+        entity_id: switch.vestel_ev_charge_control
+
+- id: "dynamisches_laden_stop"
+  alias: "DL - Stop bei wenig Sonne"
+  mode: restart
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      above: 0.1
+    - platform: state
+      entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+      to: "unavailable"
+      for:
+        minutes: 2
+  condition:
+    - condition: state
+      entity_id: switch.vestel_ev_charge_control
+      state: "on"
+  action:
+    - delay:
+        seconds: 30
+    - choose:
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+              above: 0.1
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: switch.vestel_ev_charge_control
+        - conditions:
+            - condition: state
+              entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+              state: "unavailable"
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: switch.vestel_ev_charge_control
+
 - id: "sim_auto_sync_slider"
   alias: "SIM - Auto Sync Slider"
   trigger:
@@ -195,6 +314,31 @@
 
 # === SUB: Eingebetteter Zustandsautomat für Überschussladen ===
 
+- id: "sub_entry_ueberschussladen"
+  alias: "SUB - Eintritt Ueberschussladen"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_select.sim_betriebsart
+      to: "Ueberschussladen"
+    - platform: state
+      entity_id: input_select.sim_betriebsart_2
+      to: "Ueberschussladen"
+  action:
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_algo_zustand
+      data:
+        option: "Warte Überschuss"
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.sim_actor_wallbox
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_actor_strom
+      data:
+        value: 6
+
 - id: "sub_warte_zu_laden"
   alias: "SUB - Warte → Laden 6A"
   mode: restart
@@ -277,3 +421,51 @@
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.sim_actor_wallbox
+
+# === BRIDGE: SIM-Aktoren → Echte Wallbox ===
+
+- id: "bridge_actor_wallbox"
+  alias: "BRIDGE - Wallbox Ein/Aus"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: input_boolean.sim_actor_wallbox
+  condition:
+    - condition: state
+      entity_id: input_select.aktoren_modus
+      state: "Aktiv"
+  action:
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.sim_actor_wallbox
+              state: "on"
+          sequence:
+            - action: switch.turn_on
+              target:
+                entity_id: switch.vestel_ev_charge_control
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.sim_actor_wallbox
+              state: "off"
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: switch.vestel_ev_charge_control
+
+- id: "bridge_actor_strom"
+  alias: "BRIDGE - Wallbox Strom"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: input_number.sim_actor_strom
+  condition:
+    - condition: state
+      entity_id: input_select.aktoren_modus
+      state: "Aktiv"
+  action:
+    - action: number.set_value
+      target:
+        entity_id: number.vestel_ev_maximum_current
+      data:
+        value: "{{ states('input_number.sim_actor_strom') | int(0) }}"
