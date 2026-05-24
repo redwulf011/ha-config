@@ -57,7 +57,7 @@ template:
       - name: "Fahrzeug Status"
         unique_id: fahrzeug_status
         state: >
-          {% set s = states('sensor.vestel_ev_status_connector') %}
+          {% set s = states('sensor.sim_eff_connector') %}
           {% set map = {
             'Available': 'Nicht eingesteckt',
             'Preparing': 'Eingesteckt',
