@@ -1,3 +1,25 @@
+- id: "set_start_defaults"
+  alias: "SET - Defaults bei Start"
+  trigger:
+    - platform: homeassistant
+      event: start
+  action:
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.aktoren_modus
+      data:
+        option: "Aktiv"
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_modus_2
+      data:
+        option: "Auto"
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_betriebsart
+      data:
+        option: "Ueberschussladen"
+
 
 - id: "algo_sofortladen"
   alias: "ALGO - Zustand Sofortladen"
@@ -151,6 +173,29 @@
           - input_boolean.sim_man_soc
           - input_boolean.sim_man_strom
 
+- id: "sub_ue6_zu_ue6plus"
+  alias: "SUB - UE6 → UE6+ (10s)"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_select.sim_algo_zustand
+      to: "Laden 6A"
+  condition:
+    - condition: state
+      entity_id: input_select.sim_algo_zustand
+      state: "Laden 6A"
+  action:
+    - delay:
+        seconds: 10
+    - condition: state
+      entity_id: input_select.sim_algo_zustand
+      state: "Laden 6A"
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_algo_zustand
+      data:
+        option: "Laden 6A+"
+
 # === SUB: Eingebetteter Zustandsautomat für Überschussladen ===
 
 - id: "sub_entry_ueberschussladen"
@@ -228,14 +273,22 @@
       entity_id: input_select.sim_algo_zustand
       to: "Laden 6A"
     - platform: state
+      entity_id: input_select.sim_algo_zustand
+      to: "Laden 6A+"
+    - platform: state
       entity_id: input_number.sim_netz
   condition:
     - condition: state
       entity_id: input_select.sim_betriebsart_2
       state: "Ueberschussladen"
-    - condition: state
-      entity_id: input_select.sim_algo_zustand
-      state: "Laden 6A"
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: input_select.sim_algo_zustand
+          state: "Laden 6A"
+        - condition: state
+          entity_id: input_select.sim_algo_zustand
+          state: "Laden 6A+"
     - condition: template
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}

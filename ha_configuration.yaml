@@ -275,6 +275,8 @@ template:
             → VBM    wenn Betriebsart = Voll bis Morgen
           {% elif node == 'UE6' %}
             🔄 Übergänge von UE6 (Laden):
+          {% elif node == 'UE6+' %}
+            🔄 Übergänge von UE6+ (Laden+):
             → UE0  wenn sim_netz ≥ 0 (SoC<80%) / ≥ 0.1 (SoC≥80%)
             → AUS    wenn Betriebsart = Aus
             → SOF    wenn Betriebsart = Sofortladen 16A
@@ -284,7 +286,7 @@ template:
           {% endif %}
         icon: >
           {% set node = states('sensor.aktiver_knoten') %}
-          {% if node == 'AUS' %}mdi:power-off{% elif node == 'SOF' %}mdi:lightning-bolt{% elif node == 'VBM' %}mdi:weather-night{% elif node == 'UE0' %}mdi:weather-sunny{% elif node == 'UE6' %}mdi:ev-station{% else %}mdi:help-circle{% endif %}
+          {% if node == 'AUS' %}mdi:power-off{% elif node == 'SOF' %}mdi:lightning-bolt{% elif node == 'VBM' %}mdi:weather-night{% elif node == 'UE0' %}mdi:weather-sunny{% elif node == 'UE6' %}mdi:ev-station{% elif node == 'UE6+' %}mdi:ev-station{% else %}mdi:help-circle{% endif %}
 
 
 sensor:

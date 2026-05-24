@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "minor_version": 2,
+  "key": "input_select",
+  "data": {
+    "items": [
+      {
+        "id": "sim_modus",
+        "name": "Sim Modus",
+        "options": [
+          "Auto",
+          "Mix",
+          "Manual"
+        ],
+        "initial": "Auto",
+        "icon": "mdi:auto-fix"
+      },
+      {
+        "id": "sim_modus_2",
+        "name": "Sim Modus",
+        "options": [
+          "Auto",
+          "Manual"
+        ],
+        "initial": "Auto",
+        "icon": "mdi:auto-fix"
+      },
+      {
+        "id": "sim_betriebsart",
+        "name": "Sim Betriebsart",
+        "options": [
+          "Ueberschussladen",
+          "Manuell"
+        ],
+        "initial": "Ueberschussladen",
+        "icon": "mdi:ev-station"
+      },
+      {
+        "id": "sim_s3_modus",
+        "name": "Sim S3 Modus",
+        "options": [
+          "Auto",
+          "Manual"
+        ],
+        "initial": "Auto",
+        "icon": "mdi:auto-fix"
+      },
+      {
+        "id": "sim_connector",
+        "name": "Sim Connector",
+        "options": [
+          "Available",
+          "Preparing",
+          "Charging",
+          "Finishing"
+        ],
+        "initial": "Available",
+        "icon": "mdi:power-plug"
+      },
+      {
+        "id": "aktoren_modus",
+        "name": "Aktoren Modus",
+        "options": [
+          "Getrennt",
+          "Aktiv"
+        ],
+        "initial": "Aktiv",
+        "icon": "mdi:flash"
+      },
+      {
+        "id": "sim_betriebsart_2",
+        "name": "Sim Betriebsart",
+        "options": [
+          "Aus",
+          "Sofortladen 16A",
+          "Ueberschussladen",
+          "Voll bis Morgen"
+        ],
+        "initial": "Ueberschussladen",
+        "icon": "mdi:ev-station"
+      },
+      {
+        "id": "aktoren_modus_2",
+        "name": "Aktoren Modus",
+        "options": [
+          "Getrennt",
+          "Aktiv"
+        ],
+        "initial": "Getrennt",
+        "icon": "mdi:shield-off"
+      },
+      {
+        "id": "sim_algo_zustand",
+        "name": "Sim Algo Zustand",
+        "options": [
+          "Warte \u00dcberschuss",
+          "Laden 6A",
+          "Laden 6A+"
+        ],
+        "initial": "Warte \u00dcberschuss",
+        "icon": "mdi:state-machine"
+      }
+    ]
+  }
+}
