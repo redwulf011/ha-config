@@ -228,10 +228,10 @@ template:
           {% elif bt == 'Sofortladen 16A' %}SOF
           {% elif bt == 'Ueberschussladen' %}
             {% set sub = states('input_select.sim_algo_zustand') %}
-            {% if sub == 'Warte Überschuss' %}UEB_W
-            {% elif sub == 'Laden 6A' %}UEB_L
+            {% if sub == 'Warte Überschuss' %}UE0
+            {% elif sub == 'Laden 6A' %}UE6
             {% else %}UEB{% endif %}
-          {% elif bt == 'Voll bis Morgen' %}VM
+          {% elif bt == 'Voll bis Morgen' %}VBM
           {% else %}AUS{% endif %}
 
       # Batterieentladung (nur positive Werte)
@@ -255,36 +255,36 @@ template:
           {% if node == 'AUS' %}
             🔄 Übergänge von AUS:
             → SOF  wenn Betriebsart = Sofortladen 16A
-            → VM   wenn Betriebsart = Voll bis Morgen
+            → VBM  wenn Betriebsart = Voll bis Morgen
             → UEB  wenn Betriebsart = Überschussladen
           {% elif node == 'SOF' %}
             🔄 Übergänge von SOF (Sofortladen):
             → AUS  wenn Betriebsart = Aus
-            → VM   wenn Betriebsart = Voll bis Morgen
+            → VBM  wenn Betriebsart = Voll bis Morgen
             → UEB  wenn Betriebsart = Überschussladen
-          {% elif node == 'VM' %}
-            🔄 Übergänge von VM (Voll bis Morgen):
+          {% elif node == 'VBM' %}
+            🔄 Übergänge von VBM (Voll bis Morgen):
             → AUS  wenn Betriebsart = Aus
             → SOF  wenn Betriebsart = Sofortladen 16A
             → UEB  wenn Betriebsart = Überschussladen
-          {% elif node == 'UEB_W' %}
-            🔄 Übergänge von UEB_W (Warte Überschuss):
-            → UEB_L  wenn sim_netz ≤ -{{ start_thresh }}kW {{ soc_text }}
+          {% elif node == 'UE0' %}
+            🔄 Übergänge von UE0 (Warte):
+            → UE6  wenn sim_netz ≤ -{{ start_thresh }}kW {{ soc_text }}
             → AUS    wenn Betriebsart = Aus
             → SOF    wenn Betriebsart = Sofortladen 16A
-            → VM     wenn Betriebsart = Voll bis Morgen
-          {% elif node == 'UEB_L' %}
-            🔄 Übergänge von UEB_L (Laden 6A):
-            → UEB_W  wenn sim_netz ≥ 0 (SoC<80%) / ≥ 0.1 (SoC≥80%)
+            → VBM    wenn Betriebsart = Voll bis Morgen
+          {% elif node == 'UE6' %}
+            🔄 Übergänge von UE6 (Laden):
+            → UE0  wenn sim_netz ≥ 0 (SoC<80%) / ≥ 0.1 (SoC≥80%)
             → AUS    wenn Betriebsart = Aus
             → SOF    wenn Betriebsart = Sofortladen 16A
-            → VM     wenn Betriebsart = Voll bis Morgen
+            → VBM    wenn Betriebsart = Voll bis Morgen
           {% else %}
             🔄 Keine Übergänge definiert für {{ node }}
           {% endif %}
         icon: >
           {% set node = states('sensor.aktiver_knoten') %}
-          {% if node == 'AUS' %}mdi:power-off{% elif node == 'SOF' %}mdi:lightning-bolt{% elif node == 'VM' %}mdi:weather-night{% elif node == 'UEB_W' %}mdi:weather-sunny{% elif node == 'UEB_L' %}mdi:ev-station{% else %}mdi:help-circle{% endif %}
+          {% if node == 'AUS' %}mdi:power-off{% elif node == 'SOF' %}mdi:lightning-bolt{% elif node == 'VBM' %}mdi:weather-night{% elif node == 'UE0' %}mdi:weather-sunny{% elif node == 'UE6' %}mdi:ev-station{% else %}mdi:help-circle{% endif %}
 
 
 sensor:
