@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "lovelace_dashboards",
+  "data": {
+    "items": [
+      {
+        "id": "map",
+        "icon": "mdi:map",
+        "title": "Karte",
+        "url_path": "map",
+        "show_in_sidebar": true,
+        "mode": "storage",
+        "require_admin": false
+      },
+      {
+        "id": "entw_algo",
+        "title": "Entwicklung",
+        "url_path": "entw-algo",
+        "icon": "mdi:code-braces",
+        "show_in_sidebar": true,
+        "mode": "storage",
+        "require_admin": false
+      }
+    ]
+  }
+}
