@@ -9,9 +9,6 @@ new_diagram = '''flowchart LR
 
     UE0 -->|"sim_netz \u2264 -4.24 (SoC<80%) / \u2264 -4.14 (SoC\u226580%)"| UE6
     UE6 -->|"sim_netz \u2265 0 (SoC<80%) / \u2265 0.1 (SoC\u226580%)"| UE0
-    UE6 --> AUS
-    UE6 --> SOF
-    UE6 --> VBM
 
     classDef active fill:#4CAF50,color:white,stroke:#2E7D32,stroke-width:3px
     classDef inactive fill:#e0e0e0,color:#666,stroke:#bbb
