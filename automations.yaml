@@ -219,10 +219,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set soc = states('sensor.sim_eff_soc') | float(0) %}
-        {% if soc < 80 %}
-          {{ netz <= -4.24 }}
+        {% if soc >= 20 %}
+          {{ netz <= -1.54 }}
         {% else %}
-          {{ netz <= -4.14 }}
+          {{ netz <= -2.84 }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -261,10 +261,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set soc = states('sensor.sim_eff_soc') | float(0) %}
-        {% if soc < 80 %}
-          {{ netz >= 0 }}
+        {% if soc >= 10 %}
+          {{ netz >= -1.3 }}
         {% else %}
-          {{ netz >= 0.1 }}
+          {{ netz >= 0 }}
         {% endif %}
   action:
     - action: input_select.select_option
