@@ -1,34 +1,31 @@
-import json
+aut_path = '/var/snap/home-assistant-snap/695/automations.yaml'
 
-new_diagram = '''flowchart LR
-    AUS["Aus"]
-    SOF["Sofortladen"]
-    UE0["Warte"]
-    UE6["Laden"]
-    VBM["VollBisMorgen"]
+with open(aut_path) as f:
+    aut = f.read()
 
-    UE0 -->|"sim_netz \u2264 -4.24 (SoC<80%) / \u2264 -4.14 (SoC\u226580%)"| UE6
-    UE6 -->|"sim_netz \u2265 0 (SoC<80%) / \u2265 0.1 (SoC\u226580%)"| UE0
+# 1) Leeren Trigger aus sub_laden_zu_warte entfernen
+#    "    - platform: state\n      entity_id: input_select.sim_algo_zustand\n"
+#    ABER NUR wenn danach kein "to:" kommt (also der leere)
+old = "    - platform: state\n      entity_id: input_select.sim_algo_zustand\n    - platform: state\n      entity_id: input_number.sim_netz"
+new = "    - platform: state\n      entity_id: input_number.sim_netz"
+aut = aut.replace(old, new)
 
-    classDef active fill:#4CAF50,color:white,stroke:#2E7D32,stroke-width:3px
-    classDef inactive fill:#e0e0e0,color:#666,stroke:#bbb
+# 2) Leere Condition aus der OR-Bedingung entfernen
+#    "        - condition: state\n          entity_id: input_select.sim_algo_zustand\n"
+#    direkt nach der "Laden 6A" condition
+old = "          state: \"Laden 6A\"\n        - condition: state\n          entity_id: input_select.sim_algo_zustand\n    - condition: template"
+new = "          state: \"Laden 6A\"\n    - condition: template"
+aut = aut.replace(old, new)
 
-    class AUS ${if(is_state('sensor.aktiver_knoten','AUS'),'active','inactive')}
-    class SOF ${if(is_state('sensor.aktiver_knoten','SOF'),'active','inactive')}
-    class UE0 ${if(is_state('sensor.aktiver_knoten','UE0'),'active','inactive')}
-    class UE6 ${if(is_state('sensor.aktiver_knoten','UE6'),'active','inactive')}
-    class VBM ${if(is_state('sensor.aktiver_knoten','VBM'),'active','inactive')}'''
+with open(aut_path, 'w') as f:
+    f.write(aut)
 
-paths = [
-    '/home/w/.openclaw/workspace/lovelace.entw_algo',
-    '/var/snap/home-assistant-snap/695/.storage/lovelace.entw_algo',
-]
+print("✅ automations.yaml repariert")
 
-for path in paths:
-    with open(path, encoding='utf-8') as f:
-        data = json.load(f)
-    card = data['data']['config']['views'][0]['cards'][3]
-    card['content'] = new_diagram
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"✅ {path} aktualisiert")
+# Verify
+with open(aut_path) as f:
+    content = f.read()
+# Prüfen ob noch leere platform/condition Blöcke da sind  
+import re
+empty_trigger = re.findall(r"    - platform: state\n      entity_id: input_select\.sim_algo_zustand\n    - platform: state", content)
+print(f"Leere Trigger gefunden: {len(empty_trigger)}")

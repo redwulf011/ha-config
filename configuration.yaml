@@ -57,7 +57,7 @@ template:
       - name: "Fahrzeug Status"
         unique_id: fahrzeug_status
         state: >
-          {% set s = states('sensor.vestel_ev_status_connector') %}
+          {% set s = states('sensor.sim_eff_connector') %}
           {% set map = {
             'Available': 'Nicht eingesteckt',
             'Preparing': 'Eingesteckt',
@@ -91,30 +91,6 @@ template:
           {% set s = states('sensor.pv_uberschuss') | float(0) %}
           {% set a = (s * 1000 / 690) | round(0) | int %}
           {% if s < 0.7 %}0{% elif a < 6 %}6{% elif a > 16 %}16{% else %}{{ a }}{% endif %}
-
-      - name: "Algorithmus Phase"
-        unique_id: algorithmus_phase
-        state: >
-          {% set conn = states('sensor.vestel_ev_status_connector') %}
-          {% set laden = states('switch.vestel_ev_charge_control') %}
-          {% set netz = states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) %}
-          {% set ue = (netz * -1) | round(1) %}
-          {% if conn == 'Available' %}
-            {% if ue >= 1.5 and laden == 'off' %}🔌 Auto einstecken! {{ ue }}kW Überschuss{% else %}🔌 Nicht eingesteckt{% endif %}
-          {% elif laden == 'on' %}
-            {% if ue < 0.5 %}⚡ Lädt - Stopp bei <0,5kW (aktuell {{ ue }}kW){% else %}⚡ Lädt mit {{ states('number.vestel_ev_maximum_current') }}A bei {{ ue }}kW Überschuss{% endif %}
-          {% elif conn == 'Preparing' %}
-            {% if ue >= 1.5 %}⏳ Bereit - Start bei ≥1,5kW für 1 Min (aktuell {{ ue }}kW) - Zählt...{% else %}⏳ Bereit - Warte auf ≥1,5kW (aktuell {{ ue }}kW){% endif %}
-          {% elif conn == 'Charging' %}
-            ⚡ Lädt
-          {% elif conn == 'Finishing' %}
-            ✅ Fertig
-          {% else %}
-            ⏸️ Pausiert
-          {% endif %}
-        icon: >
-          {% set s = states('sensor.vestel_ev_status_connector') %}
-          {% if s == 'Charging' %}mdi:ev-station{% elif s == 'Preparing' %}mdi:power-plug{% elif s == 'Available' %}mdi:power-plug-off{% else %}mdi:help-circle{% endif %}
 
       - name: "Einstecken Signal"
         unique_id: einstecken_signal
@@ -218,20 +194,6 @@ template:
           {% if ein == 'off' %}{{ (pv - haus) | round(2) }}{% else %}
             {{ (pv - haus - car) | round(2) }}{% endif %}
 
-      - name: "Algorithmus Zustand"
-        unique_id: algorithmus_zustand
-        state: >
-          {% set conn = states('sensor.vestel_ev_status_connector') %}
-          {% set laden = states('switch.vestel_ev_charge_control') %}
-          {% set netz = states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) %}
-          {% set ue = (netz * -1) | round(1) %}
-          {% if conn == 'Available' %}Leer{% elif conn == 'Finishing' or conn == 'Preparing' %}
-            {% if laden == 'on' and ue < 0.3 %}StopZaehler{% elif laden == 'on' %}Laden{% elif ue >= 1.5 %}StartZaehler{% else %}WartenSonne{% endif %}
-          {% elif laden == 'on' and ue < 0.3 %}StopZaehler{% elif laden == 'on' %}Laden{% elif laden == 'off' %}Aus{% else %}Unbekannt{% endif %}
-        icon: >
-          {% set z = states('sensor.algorithmus_zustand') %}
-          {% if z == 'Laden' %}mdi:ev-station{% elif z == 'StopZaehler' %}mdi:timer-outline{% elif z == 'StartZaehler' %}mdi:timer-play{% elif z == 'WartenSonne' %}mdi:weather-sunny-off{% elif z == 'Leer' %}mdi:power-plug-off{% else %}mdi:help-circle{% endif %}
-
       # === Batterie Effektiv ===
       - name: "Sim Eff Batterie"
         unique_id: sim_eff_batterie
@@ -257,55 +219,20 @@ template:
           {% endif %}
 
       # === Schicht 3: Effektive Werte ===
-      - name: "Sim S3 Eff Batterie"
-        unique_id: sim_s3_eff_batterie
-        unit_of_measurement: "kW"
-        device_class: power
-        state: >
-          {% set mode = states('input_select.sim_s3_modus') %}
-          {% if mode == 'Manual' %}
-            {{ states('input_number.sim_s3_batterie') | float(0) }}
-          {% else %}
-            {{ states('sensor.envoy_batterieleistung') | float(0) }}
-          {% endif %}
-
-      - name: "Sim S3 Eff Ueberschuss"
-        unique_id: sim_s3_eff_ueberschuss
-        unit_of_measurement: "kW"
-        device_class: power
-        state: >
-          {% set mode = states('input_select.sim_s3_modus') %}
-          {% if mode == 'Manual' %}
-            {{ states('input_number.sim_s3_ueberschuss') | float(0) }}
-          {% else %}
-            {{ states('sensor.pv_uberschuss') | float(0) }}
-          {% endif %}
-
 
       - name: "Aktiver Knoten"
         unique_id: aktiver_knoten
         state: >
-          {% set s = states('sensor.algorithmus_status') %}
-          {% if s == 'Aus' %}AUS
-          {% elif s == 'Sofortladen' %}SOF
-          {% elif s == 'Ueberschussladen' %}
-            {% set sub = states('input_select.sim_algo_zustand') %}
-            {% if sub == 'Warte Überschuss' %}UEB_W
-            {% elif sub == 'Laden 6A' %}UEB_L
-            {% else %}UEB{% endif %}
-          {% elif s == 'VollBisMorgen' %}VM
-          {% else %}AUS{% endif %}
-
-      # === Algorithmus Zustandsautomat ===
-      - name: "Algorithmus Status"
-        unique_id: algorithmus_status
-        state: >
           {% set bt = states('input_select.sim_betriebsart') %}
-          {% if bt == 'Aus' %}Aus
-          {% elif bt == 'Sofortladen 16A' %}Sofortladen
-          {% elif bt == 'Ueberschussladen' %}Ueberschussladen
-          {% elif bt == 'Voll bis Morgen' %}VollBisMorgen
-          {% else %}Unbekannt{% endif %}
+          {% if bt == 'Aus' %}AUS
+          {% elif bt == 'Sofortladen 16A' %}SOF
+          {% elif bt == 'Ueberschussladen' %}
+            {% set sub = states('input_select.sim_algo_zustand') %}
+            {% if sub == 'Warte Überschuss' %}UE0
+            {% elif sub == 'Laden 6A' %}UE6
+            {% else %}UEB{% endif %}
+          {% elif bt == 'Voll bis Morgen' %}VBM
+          {% else %}AUS{% endif %}
 
       # Batterieentladung (nur positive Werte)
       - name: "Batterieentladung Leistung"
@@ -317,6 +244,50 @@ template:
           {% set b = states('sensor.envoy_batterieleistung') | float(0) %}
           {% if b > 0 %}{{ b }}{% else %}0{% endif %}
 
+      # Übergänge vom aktuellen Zustand (für Dashboard)
+      - name: "Aktuelle Übergänge"
+        unique_id: aktuelle_uebergaenge
+        state: >
+          {% set node = states('sensor.aktiver_knoten') %}
+          {% set soc = states('sensor.sim_eff_soc') | float(0) %}
+          {% set soc_text = '(SoC<' + soc|string + '%)' if soc < 80 else '(SoC≥' + soc|string + '%)' %}
+          {% set start_thresh = '4.24' if soc < 80 else '4.14' %}
+          {% if node == 'AUS' %}
+            🔄 Übergänge von AUS:
+            → SOF  wenn Betriebsart = Sofortladen 16A
+            → VBM  wenn Betriebsart = Voll bis Morgen
+            → UEB  wenn Betriebsart = Überschussladen
+          {% elif node == 'SOF' %}
+            🔄 Übergänge von SOF (Sofortladen):
+            → AUS  wenn Betriebsart = Aus
+            → VBM  wenn Betriebsart = Voll bis Morgen
+            → UEB  wenn Betriebsart = Überschussladen
+          {% elif node == 'VBM' %}
+            🔄 Übergänge von VBM (Voll bis Morgen):
+            → AUS  wenn Betriebsart = Aus
+            → SOF  wenn Betriebsart = Sofortladen 16A
+            → UEB  wenn Betriebsart = Überschussladen
+          {% elif node == 'UE0' %}
+            🔄 Übergänge von UE0 (Warte):
+            → UE6  wenn sim_netz ≤ -{{ start_thresh }}kW {{ soc_text }}
+            → AUS    wenn Betriebsart = Aus
+            → SOF    wenn Betriebsart = Sofortladen 16A
+            → VBM    wenn Betriebsart = Voll bis Morgen
+          {% elif node == 'UE6' %}
+            🔄 Übergänge von UE6 (Laden):
+            → UE0  wenn sim_netz ≥ 0 (SoC<80%) / ≥ 0.1 (SoC≥80%)
+            → AUS    wenn Betriebsart = Aus
+            → SOF    wenn Betriebsart = Sofortladen 16A
+            → VBM    wenn Betriebsart = Voll bis Morgen
+            → UE0  wenn sim_netz ≥ 0 (SoC<80%) / ≥ 0.1 (SoC≥80%)
+            → AUS    wenn Betriebsart = Aus
+            → SOF    wenn Betriebsart = Sofortladen 16A
+            → VBM    wenn Betriebsart = Voll bis Morgen
+          {% else %}
+            🔄 Keine Übergänge definiert für {{ node }}
+          {% endif %}
+        icon: >
+          {% set node = states('sensor.aktiver_knoten') %}
 sensor:
   - platform: integration
     name: "Produktion heute"
