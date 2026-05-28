@@ -60,6 +60,10 @@
                 {
                   "entity": "input_select.sim_betriebsart",
                   "name": "Betriebsart"
+                },
+                {
+                  "entity": "input_number.verzoegerung_wechsel",
+                  "name": "Verzögerung Wechsel"
                 }
               ]
             },
@@ -75,6 +79,10 @@
                     {
                       "entity": "sensor.fahrzeug_status",
                       "name": "Fahrzeug"
+                    },
+                    {
+                      "entity": "sensor.sim_zeit_seit_wechsel",
+                      "name": "Zeit seit Wechsel"
                     }
                   ]
                 },
@@ -88,7 +96,7 @@
               "type": "custom:mermaid-card",
               "title": "Schicht 4: Zustand",
               "card_size": 9,
-              "content": "flowchart LR\n    AUS[\"Aus\"]\n    SOF[\"Sofortladen\"]\n    UE0[\"Warte\"]\n    UE6[\"Laden\"]\n    VBM[\"VollBisMorgen\"]\n\n    UE0 -->|\"sim_netz ≤ -1.54 (SoC≥20%) / ≤ -2.84 (SoC<20%)\"| UE6\n    UE6 -->|\"sim_netz ≥ -1.3 (SoC≥10%) / ≥ 0 (SoC<10%)\"| UE0\n\n    classDef active fill:#4CAF50,color:white,stroke:#2E7D32,stroke-width:3px\n    classDef inactive fill:#e0e0e0,color:#666,stroke:#bbb\n\n    class AUS ${if(is_state('sensor.aktiver_knoten','AUS'),'active','inactive')}\n    class SOF ${if(is_state('sensor.aktiver_knoten','SOF'),'active','inactive')}\n    class UE0 ${if(is_state('sensor.aktiver_knoten','UE0'),'active','inactive')}\n    class UE6 ${if(is_state('sensor.aktiver_knoten','UE6'),'active','inactive')}\n    class VBM ${if(is_state('sensor.aktiver_knoten','VBM'),'active','inactive')}"
+              "content": "flowchart LR\n    AUS[\"Aus\"]\n    SOF[\"Sofortladen\"]\n    UE0[\"Warte\"]\n    UE6[\"Laden 6A\"]\n    UE7[\"Laden 7A\"]\n    VBM[\"VollBisMorgen\"]\n\n    UE0 -->|\"sim_netz ≤ -1.54 (SoC≥20%) / ≤ -2.84 (SoC<20%)\"| UE6\n    UE6 -->|\"sim_netz ≤ -0.74\"| UE7\n    UE7 -->|\"sim_netz ≥ -0.64\"| UE6\n    UE6 -->|\"sim_netz ≥ -1.3 (SoC≥10%) / ≥ 0 (SoC<10%)\"| UE0\n\n    classDef active fill:#4CAF50,color:white,stroke:#2E7D32,stroke-width:3px\n    classDef inactive fill:#e0e0e0,color:#666,stroke:#bbb\n\n    class AUS ${if(is_state('sensor.aktiver_knoten','AUS'),'active','inactive')}\n    class SOF ${if(is_state('sensor.aktiver_knoten','SOF'),'active','inactive')}\n    class UE0 ${if(is_state('sensor.aktiver_knoten','UE0'),'active','inactive')}\n    class UE6 ${if(is_state('sensor.aktiver_knoten','UE6'),'active','inactive')}\n    class UE7 ${if(is_state('sensor.aktiver_knoten','UE7'),'active','inactive')}\n    class VBM ${if(is_state('sensor.aktiver_knoten','VBM'),'active','inactive')}"
             },
             {
               "type": "entities",

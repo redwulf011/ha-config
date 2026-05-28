@@ -218,11 +218,15 @@
     - condition: template
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
+        {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
         {% set soc = states('sensor.sim_eff_soc') | float(0) %}
+        {% set last = states['sensor.aktiver_knoten'].last_changed %}
+        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 20 %}
-          {{ netz <= -1.54 }}
+          {{ netz - bat - 1.3 <= -4.14 and zeit >= delay }}
         {% else %}
-          {{ netz <= -2.84 }}
+          {{ netz - bat <= -4.14 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -260,11 +264,15 @@
     - condition: template
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
+        {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
         {% set soc = states('sensor.sim_eff_soc') | float(0) %}
+        {% set last = states['sensor.aktiver_knoten'].last_changed %}
+        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 10 %}
-          {{ netz >= -1.3 }}
+          {{ netz - bat - 1.3 > -4.14 and zeit >= delay }}
         {% else %}
-          {{ netz >= 0 }}
+          {{ netz - bat > -4.14 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -329,3 +337,83 @@
         entity_id: number.vestel_ev_maximum_current
       data:
         value: "{{ states('input_number.sim_actor_strom') | int(0) }}"
+
+- id: "sub_ue6_zu_ue7"
+  alias: "SUB - Laden 6A → Laden 7A"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: input_number.sim_netz
+    - platform: time_pattern
+      seconds: "/5"
+  condition:
+    - condition: state
+      entity_id: input_select.sim_betriebsart_2
+      state: "Ueberschussladen"
+    - condition: state
+      entity_id: input_select.sim_algo_zustand
+      state: "Laden 6A"
+    - condition: template
+      value_template: >
+        {% set netz = states('input_number.sim_netz') | float(0) %}
+        {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
+        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
+        {% set last = states['sensor.aktiver_knoten'].last_changed %}
+        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
+        {% if soc >= 20 %}
+          {{ netz - bat - 1.3 <= -4.83 and zeit >= delay }}
+        {% else %}
+          {{ netz - bat <= -4.83 and zeit >= delay }}
+        {% endif %}
+  action:
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_algo_zustand
+      data:
+        option: "Laden 7A"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_actor_strom
+      data:
+        value: 7
+
+- id: "sub_ue7_zu_ue6"
+  alias: "SUB - Laden 7A → Laden 6A"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: input_number.sim_netz
+    - platform: time_pattern
+      seconds: "/5"
+  condition:
+    - condition: state
+      entity_id: input_select.sim_betriebsart_2
+      state: "Ueberschussladen"
+    - condition: state
+      entity_id: input_select.sim_algo_zustand
+      state: "Laden 7A"
+    - condition: template
+      value_template: >
+        {% set netz = states('input_number.sim_netz') | float(0) %}
+        {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
+        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
+        {% set last = states['sensor.aktiver_knoten'].last_changed %}
+        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
+        {% if soc >= 10 %}
+          {{ netz - bat - 1.3 > -4.83 and zeit >= delay }}
+        {% else %}
+          {{ netz - bat > -4.83 and zeit >= delay }}
+        {% endif %}
+  action:
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_algo_zustand
+      data:
+        option: "Laden 6A"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_actor_strom
+      data:
+        value: 6
