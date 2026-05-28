@@ -239,6 +239,7 @@ template:
             {% if sub == 'Warte Überschuss' %}UE0
             {% elif sub == 'Laden 6A' %}UE6
             {% elif sub == 'Laden 7A' %}UE7
+            {% elif sub == 'Laden 8A' %}UE8
             {% else %}UEB{% endif %}
           {% elif bt == 'Voll bis Morgen' %}VBM
           {% else %}AUS{% endif %}
@@ -291,7 +292,14 @@ template:
             → VBM    wenn Betriebsart = Voll bis Morgen
           {% elif node == 'UE7' %}
             🔄 Übergänge von UE7 (Laden 7A):
+            → UE8  wenn netz - bat - 1.3 ≤ -5.52 (SoC≥20%) / netz - bat ≤ -5.52 (SoC<20%)
             → UE6  wenn netz - bat - 1.3 > -4.83 (SoC≥10%) / netz - bat > -4.83 (SoC<10%)
+            → AUS    wenn Betriebsart = Aus
+            → SOF    wenn Betriebsart = Sofortladen 16A
+            → VBM    wenn Betriebsart = Voll bis Morgen
+          {% elif node == 'UE8' %}
+            🔄 Übergänge von UE8 (Laden 8A):
+            → UE7  wenn netz - bat - 1.3 > -5.52 (SoC≥10%) / netz - bat > -5.52 (SoC<10%)
             → AUS    wenn Betriebsart = Aus
             → SOF    wenn Betriebsart = Sofortladen 16A
             → VBM    wenn Betriebsart = Voll bis Morgen
