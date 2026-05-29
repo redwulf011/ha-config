@@ -280,7 +280,7 @@ template:
           {%- elif state == 'Sofortladen' -%}
           🔄 Sofortladen: → Aus / → Überschussladen
           {%- elif state == 'Warte Überschuss' -%}
-          🔄 Warte: → 6A wenn netz+bat ≤ -2,84(≥20%)/≤ -4,14(<20%) / → Aus / → Sofortladen 16A
+          🔄 Warte: → 6A wenn netz−bat ≤ -2,84(≥20%)/≤ -4,14(<20%) / → Aus / → Sofortladen 16A
           {%- elif state == 'Laden 6A' -%}
           🔄 Laden 6A: → 7A wenn ≤ -3,53(≥20%)/≤ -4,83(<20%) / → Warte wenn > -2,84(≥10%)/> -4,14(<10%) / → Aus / → Sofortladen 16A
           {%- elif state == 'Laden 7A' -%}
