@@ -5,3 +5,4 @@ Thumbs.db
 *.log
 memory/
 HEARTBEAT.md
+ha_token.txt
