@@ -9,6 +9,18 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 
+input_select:
+  sim_algo_zustand:
+    name: "Sim Algo Zustand"
+    options:
+      - "Warte Überschuss"
+      - "Laden 6A"
+      - "Laden 7A"
+      - "Laden 8A"
+    initial: "Warte Überschuss"
+    icon: mdi:state-machine
+
+
 template:
   - sensor:
       # Batterieleistung (kW) - berechnet
@@ -258,56 +270,23 @@ template:
       - name: "Aktuelle Übergänge"
         unique_id: aktuelle_uebergaenge
         state: >
-          {% set node = states('sensor.aktiver_knoten') %}
-          {% set soc = states('sensor.sim_eff_soc') | float(0) %}
-          {% set soc_text = '(SoC<' + soc|string + '%)' if soc < 80 else '(SoC≥' + soc|string + '%)' %}
-          {% set start_thresh = '4.24' if soc < 80 else '4.14' %}
-          {% if node == 'AUS' %}
-            🔄 Übergänge von AUS:
-            → SOF  wenn Betriebsart = Sofortladen 16A
-            → VBM  wenn Betriebsart = Voll bis Morgen
-            → UEB  wenn Betriebsart = Überschussladen
-          {% elif node == 'SOF' %}
-            🔄 Übergänge von SOF (Sofortladen):
-            → AUS  wenn Betriebsart = Aus
-            → VBM  wenn Betriebsart = Voll bis Morgen
-            → UEB  wenn Betriebsart = Überschussladen
-          {% elif node == 'VBM' %}
-            🔄 Übergänge von VBM (Voll bis Morgen):
-            → AUS  wenn Betriebsart = Aus
-            → SOF  wenn Betriebsart = Sofortladen 16A
-            → UEB  wenn Betriebsart = Überschussladen
-          {% elif node == 'UE0' %}
-            🔄 Übergänge von UE0 (Warte):
-            → UE6  wenn netz - bat - 1.3 ≤ -4.14 (SoC≥20%) / netz - bat ≤ -4.14 (SoC<20%)
-            → AUS    wenn Betriebsart = Aus
-            → SOF    wenn Betriebsart = Sofortladen 16A
-            → VBM    wenn Betriebsart = Voll bis Morgen
-          {% elif node == 'UE6' %}
-            🔄 Übergänge von UE6 (Laden 6A):
-            → UE7  wenn netz - bat - 1.3 ≤ -4.83 (SoC≥20%) / netz - bat ≤ -4.83 (SoC<20%)
-            → UE0  wenn netz - bat - 1.3 > -4.14 (SoC≥10%) / netz - bat > -4.14 (SoC<10%)
-            → AUS    wenn Betriebsart = Aus
-            → SOF    wenn Betriebsart = Sofortladen 16A
-            → VBM    wenn Betriebsart = Voll bis Morgen
-          {% elif node == 'UE7' %}
-            🔄 Übergänge von UE7 (Laden 7A):
-            → UE8  wenn netz - bat - 1.3 ≤ -5.52 (SoC≥20%) / netz - bat ≤ -5.52 (SoC<20%)
-            → UE6  wenn netz - bat - 1.3 > -4.83 (SoC≥10%) / netz - bat > -4.83 (SoC<10%)
-            → AUS    wenn Betriebsart = Aus
-            → SOF    wenn Betriebsart = Sofortladen 16A
-            → VBM    wenn Betriebsart = Voll bis Morgen
-          {% elif node == 'UE8' %}
-            🔄 Übergänge von UE8 (Laden 8A):
-            → UE7  wenn netz - bat - 1.3 > -5.52 (SoC≥10%) / netz - bat > -5.52 (SoC<10%)
-            → AUS    wenn Betriebsart = Aus
-            → SOF    wenn Betriebsart = Sofortladen 16A
-            → VBM    wenn Betriebsart = Voll bis Morgen
-          {% else %}
-            🔄 Keine Übergänge definiert für {{ node }}
-          {% endif %}
-        icon: >
-          {% set node = states('sensor.aktiver_knoten') %}
+          {%- set state = states('input_select.sim_algo_zustand') -%}
+          {%- if state == 'Aus' -%}
+          🔄 Aus: → Sofortladen 16A / → Überschussladen
+          {%- elif state == 'Sofortladen' -%}
+          🔄 Sofortladen: → Aus / → Überschussladen
+          {%- elif state == 'Warte Überschuss' -%}
+          🔄 Warte: → 6A wenn netz+bat ≤ -2,84(≥20%)/≤ -4,14(<20%) / → Aus / → Sofortladen 16A
+          {%- elif state == 'Laden 6A' -%}
+          🔄 Laden 6A: → 7A wenn ≤ -3,53(≥20%)/≤ -4,83(<20%) / → Warte wenn > -2,84(≥10%)/> -4,14(<10%) / → Aus / → Sofortladen 16A
+          {%- elif state == 'Laden 7A' -%}
+          🔄 Laden 7A: → 8A wenn ≤ -4,22(≥20%)/≤ -5,52(<20%) / → 6A wenn > -3,53(≥10%)/> -4,83(<10%) / → Aus / → Sofortladen 16A
+          {%- elif state == 'Laden 8A' -%}
+          🔄 Laden 8A: → 7A wenn > -4,22(≥10%)/> -5,52(<10%) / → Aus / → Sofortladen 16A
+          {%- else -%}
+          🔄 {{ state }}
+          {%- endif -%}
+        icon: mdi:transfer
 sensor:
   - platform: integration
     name: "Produktion heute"
@@ -357,13 +336,6 @@ sensor:
     round: 2
     method: left
 
-  - platform: integration
-    name: "Wallbox heute"
-    unique_id: wallbox_heute
-    source: sensor.vestel_ev_power_active_import
-    unit_time: h
-    round: 2
-    method: left
 
 input_number:
   verzoegerung_wechsel:
