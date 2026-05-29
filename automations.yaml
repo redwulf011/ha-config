@@ -208,6 +208,8 @@
       to: "Warte Überschuss"
     - platform: state
       entity_id: input_number.sim_netz
+    - platform: time_pattern
+      seconds: "/5"
   condition:
     - condition: state
       entity_id: input_select.sim_betriebsart_2
@@ -252,6 +254,8 @@
       to: "Laden 6A"
     - platform: state
       entity_id: input_number.sim_netz
+    - platform: time_pattern
+      seconds: "/5"
   condition:
     - condition: state
       entity_id: input_select.sim_betriebsart_2
