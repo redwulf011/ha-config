@@ -17,6 +17,7 @@ input_select:
       - "Laden 6A"
       - "Laden 7A"
       - "Laden 8A"
+      - "Laden 9A"
     initial: "Warte Überschuss"
     icon: mdi:state-machine
 
@@ -252,6 +253,7 @@ template:
             {% elif sub == 'Laden 6A' %}UE6
             {% elif sub == 'Laden 7A' %}UE7
             {% elif sub == 'Laden 8A' %}UE8
+            {% elif sub == 'Laden 9A' %}UE9
             {% else %}UEB{% endif %}
           {% elif bt == 'Voll bis Morgen' %}VBM
           {% else %}AUS{% endif %}
@@ -282,7 +284,9 @@ template:
           {%- elif state == 'Laden 7A' -%}
           🔄 Laden 7A: → 8A wenn ≤ -4,22(≥20%)/≤ -5,52(<20%) / → 6A wenn > -3,53(≥10%)/> -4,83(<10%) / → Aus / → Sofortladen 16A
           {%- elif state == 'Laden 8A' -%}
-          🔄 Laden 8A: → 7A wenn > -4,22(≥10%)/> -5,52(<10%) / → Aus / → Sofortladen 16A
+          🔄 Laden 8A: → 9A wenn ≤ -4,91(≥20%)/≤ -6,21(<20%) / → 7A wenn > -4,22(≥10%)/> -5,52(<10%) / → Aus / → Sofortladen 16A
+          {%- elif state == 'Laden 9A' -%}
+          🔄 Laden 9A: → 8A wenn > -4,91(≥10%)/> -6,21(<10%) / → Aus / → Sofortladen 16A
           {%- else -%}
           🔄 {{ state }}
           {%- endif -%}
