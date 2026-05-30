@@ -226,9 +226,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 20 %}
-          {{ netz - bat - 1.3 <= -4.14 and zeit >= delay }}
+          {{ netz + bat - 1.3 <= -4.14 and zeit >= delay }}
         {% else %}
-          {{ netz - bat <= -4.14 and zeit >= delay }}
+          {{ netz + bat <= -4.14 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -274,9 +274,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 10 %}
-          {{ netz - bat - 1.3 > 0 and zeit >= delay }}
+          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
         {% else %}
-          {{ netz - bat > 0 and zeit >= delay }}
+          {{ netz + bat > 0 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -366,9 +366,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 20 %}
-          {{ netz - bat - 1.3 <= -0.69 and zeit >= delay }}
+          {{ netz + bat - 1.3 <= -0.69 and zeit >= delay }}
         {% else %}
-          {{ netz - bat <= -0.69 and zeit >= delay }}
+          {{ netz + bat <= -0.69 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -406,9 +406,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 10 %}
-          {{ netz - bat - 1.3 > 0 and zeit >= delay }}
+          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
         {% else %}
-          {{ netz - bat > 0 and zeit >= delay }}
+          {{ netz + bat > 0 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -446,9 +446,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 20 %}
-          {{ netz - bat - 1.3 <= -0.69 and zeit >= delay }}
+          {{ netz + bat - 1.3 <= -0.69 and zeit >= delay }}
         {% else %}
-          {{ netz - bat <= -0.69 and zeit >= delay }}
+          {{ netz + bat <= -0.69 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -486,9 +486,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 10 %}
-          {{ netz - bat - 1.3 > 0 and zeit >= delay }}
+          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
         {% else %}
-          {{ netz - bat > 0 and zeit >= delay }}
+          {{ netz + bat > 0 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -526,9 +526,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 20 %}
-          {{ netz - bat - 1.3 <= -0.69 and zeit >= delay }}
+          {{ netz + bat - 1.3 <= -0.69 and zeit >= delay }}
         {% else %}
-          {{ netz - bat <= -0.69 and zeit >= delay }}
+          {{ netz + bat <= -0.69 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -566,9 +566,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 10 %}
-          {{ netz - bat - 1.3 > 0 and zeit >= delay }}
+          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
         {% else %}
-          {{ netz - bat > 0 and zeit >= delay }}
+          {{ netz + bat > 0 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -606,9 +606,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 20 %}
-          {{ netz - bat - 1.3 <= -0.69 and zeit >= delay }}
+          {{ netz + bat - 1.3 <= -0.69 and zeit >= delay }}
         {% else %}
-          {{ netz - bat <= -0.69 and zeit >= delay }}
+          {{ netz + bat <= -0.69 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
@@ -646,9 +646,9 @@
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {% if soc >= 10 %}
-          {{ netz - bat - 1.3 > 0 and zeit >= delay }}
+          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
         {% else %}
-          {{ netz - bat > 0 and zeit >= delay }}
+          {{ netz + bat > 0 and zeit >= delay }}
         {% endif %}
   action:
     - action: input_select.select_option
