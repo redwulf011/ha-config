@@ -29,11 +29,8 @@
       entity_id: input_select.sim_betriebsart
       to: "Sofortladen 16A"
   action:
-    - action: input_select.select_option
-      target:
-        entity_id: input_select.sim_algo_zustand
-      data:
-        option: "Sofortladen"
+    # Achtung: sim_algo_zustand hat kein "Sofortladen" als Option — nur UE-States
+    # Der aktiver_knoten zeigt SOF trotzdem korrekt (prüft sim_betriebsart zuerst)
     - action: input_number.set_value
       target:
         entity_id: input_number.sim_actor_strom
@@ -42,6 +39,8 @@
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.sim_actor_wallbox
+    # Batterie in Backup-Modus (entlädt sich nicht fürs Auto)
+    - action: shell_command.batt_backup
 
 - id: "algo_aus"
   alias: "ALGO - Zustand Aus"
@@ -52,11 +51,7 @@
       entity_id: input_select.sim_betriebsart
       to: "Aus"
   action:
-    - action: input_select.select_option
-      target:
-        entity_id: input_select.sim_algo_zustand
-      data:
-        option: "Aus"
+    # sim_algo_zustand hat kein "Aus" — aktiver_knoten zeigt AUS trotzdem (prüft betriebsart)
     - action: input_number.set_value
       target:
         entity_id: input_number.sim_actor_strom
@@ -65,6 +60,8 @@
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.sim_actor_wallbox
+    # Batterie zurück in Eigenverbrauch
+    - action: shell_command.batt_self_consumption
 
 - id: "reset_betriebsart"
   alias: "Reset Betriebsart bei Stecker aus"
@@ -134,6 +131,15 @@
         entity_id: input_select.sim_connector
       data:
         option: "{{ states('sensor.vestel_ev_status_connector') }}"
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.batterie_modus
+      data:
+        option: >
+          {% set m = states('select.envoy_122323101510_speichermodus') %}
+          {% if m == 'backup' %}🔒 Backup
+          {% else %}🔋 Eigenverbrauch
+          {% endif %}
     - choose:
         - conditions:
             - condition: state
@@ -208,6 +214,8 @@
         entity_id: input_select.sim_algo_zustand
       data:
         option: "Warte Überschuss"
+    # Batterie zurück in Eigenverbrauch
+    - action: shell_command.batt_self_consumption
 
 - id: "sub_warte_zu_laden"
   alias: "SUB - Warte → Laden 6A"
@@ -231,15 +239,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 20 %}
-          {{ netz + bat - 1.3 <= -4.14 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat <= -4.14 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat <= -4.14 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:
@@ -279,15 +282,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 10 %}
-          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat > 0 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat > 0 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:
@@ -374,15 +372,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 20 %}
-          {{ netz + bat - 1.3 <= -0.69 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat <= -0.69 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat <= -0.69 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:
@@ -417,15 +410,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 10 %}
-          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat > 0 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat > 0 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:
@@ -460,15 +448,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 20 %}
-          {{ netz + bat - 1.3 <= -0.69 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat <= -0.69 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat <= -0.69 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:
@@ -503,15 +486,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 10 %}
-          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat > 0 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat > 0 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:
@@ -546,15 +524,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 20 %}
-          {{ netz + bat - 1.3 <= -0.69 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat <= -0.69 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat <= -0.69 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:
@@ -589,15 +562,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 10 %}
-          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat > 0 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat > 0 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:
@@ -632,15 +600,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 20 %}
-          {{ netz + bat - 1.3 <= -0.69 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat <= -0.69 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat <= -0.69 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:
@@ -675,15 +638,10 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set soc = states('sensor.sim_eff_soc') | float(0) %}
         {% set last = states['input_select.sim_algo_zustand'].last_changed %}
         {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
-        {% if soc >= 10 %}
-          {{ netz + bat - 1.3 > 0 and zeit >= delay }}
-        {% else %}
-          {{ netz + bat > 0 and zeit >= delay }}
-        {% endif %}
+        {{ netz + bat > 0 and zeit >= delay }}
   action:
     - action: input_select.select_option
       target:

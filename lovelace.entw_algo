@@ -45,6 +45,10 @@
                 {
                   "entity": "input_select.sim_connector",
                   "name": "Connector"
+                },
+                {
+                  "entity": "input_select.batterie_modus",
+                  "name": "Batterie-Modus"
                 }
               ]
             },
@@ -81,12 +85,8 @@
                       "name": "Zeit seit Wechsel"
                     },
                     {
-                      "entity": "sensor.vergleichswert_aufwaerts",
-                      "name": "Vergleich \u2191 (UP)"
-                    },
-                    {
-                      "entity": "sensor.vergleichswert_abwaerts",
-                      "name": "Vergleich \u2193 (DOWN)"
+                      "entity": "sensor.vergleichswert",
+                      "name": "Vergleich"
                     }
                   ]
                 },
@@ -100,7 +100,7 @@
               "type": "custom:mermaid-card",
               "title": "Schicht 4: Zustand",
               "card_size": 9,
-              "content": "flowchart BT\n    AUS[\"Aus\"]\n    SOF[\"Sofortladen\"]\n    UE0[\"Warte\"]\n    UE6[\"6A\"]\n    UE7[\"7A\"]\n    UE8[\"8A\"]\n    UE9[\"9A\"]\n    UE10[\"10A\"]\n    VBM[\"VollBisMorgen\"]\n\n    UE0 -->|\"${if(states['sensor.sim_eff_soc'] >= 20, '-2,84', '-4,14')}\"| UE6\n    UE6 -->|\"${if(states['sensor.sim_eff_soc'] >= 20, '-3,53', '-4,83')}\"| UE7\n    UE7 -->|\"${if(states['sensor.sim_eff_soc'] >= 20, '-4,22', '-5,52')}\"| UE8\n    UE8 -->|\"${if(states['sensor.sim_eff_soc'] >= 20, '-4,91', '-6,21')}\"| UE9\n    UE9 -->|\"${if(states['sensor.sim_eff_soc'] >= 20, '-5,60', '-6,90')}\"| UE10\n    UE10 -->|\"${if(states['sensor.sim_eff_soc'] >= 10, '1,30', '0')}\"| UE9\n    UE9 -->|\"${if(states['sensor.sim_eff_soc'] >= 10, '1,30', '0')}\"| UE8\n    UE8 -->|\"${if(states['sensor.sim_eff_soc'] >= 10, '1,30', '0')}\"| UE7\n    UE7 -->|\"${if(states['sensor.sim_eff_soc'] >= 10, '1,30', '0')}\"| UE6\n    UE6 -->|\"${if(states['sensor.sim_eff_soc'] >= 10, '1,30', '0')}\"| UE0\n\n    classDef active fill:#4CAF50,color:white,stroke:#2E7D32,stroke-width:3px\n    classDef inactive fill:#e0e0e0,color:#666,stroke:#bbb\n\n    class AUS ${if(is_state('sensor.aktiver_knoten','AUS'),'active','inactive')}\n    class SOF ${if(is_state('sensor.aktiver_knoten','SOF'),'active','inactive')}\n    class UE0 ${if(is_state('sensor.aktiver_knoten','UE0'),'active','inactive')}\n    class UE6 ${if(is_state('sensor.aktiver_knoten','UE6'),'active','inactive')}\n    class UE7 ${if(is_state('sensor.aktiver_knoten','UE7'),'active','inactive')}\n    class UE8 ${if(is_state('sensor.aktiver_knoten','UE8'),'active','inactive')}\n    class UE9 ${if(is_state('sensor.aktiver_knoten','UE9'),'active','inactive')}\n    class UE10 ${if(is_state('sensor.aktiver_knoten','UE10'),'active','inactive')}\n    class VBM ${if(is_state('sensor.aktiver_knoten','VBM'),'active','inactive')}"
+              "content": "flowchart BT\n    AUS[\"Aus\"]\n    SOF[\"Sofortladen\"]\n    UE0[\"Warte\"]\n    UE6[\"6A\"]\n    UE7[\"7A\"]\n    UE8[\"8A\"]\n    UE9[\"9A\"]\n    UE10[\"10A\"]\n    VBM[\"VollBisMorgen\"]\n\n    UE0 -->|\"-4,14\"| UE6\n    UE6 -->|\"-4,83\"| UE7\n    UE7 -->|\"-5,52\"| UE8\n    UE8 -->|\"-6,21\"| UE9\n    UE9 -->|\"-6,90\"| UE10\n    UE10 -->|\"> 0\"| UE9\n    UE9 -->|\"> 0\"| UE8\n    UE8 -->|\"> 0\"| UE7\n    UE7 -->|\"> 0\"| UE6\n    UE6 -->|\"> 0\"| UE0\n\n    classDef active fill:#4CAF50,color:white,stroke:#2E7D32,stroke-width:3px\n    classDef inactive fill:#e0e0e0,color:#666,stroke:#bbb\n\n    class AUS ${if(is_state('sensor.aktiver_knoten','AUS'),'active','inactive')}\n    class SOF ${if(is_state('sensor.aktiver_knoten','SOF'),'active','inactive')}\n    class UE0 ${if(is_state('sensor.aktiver_knoten','UE0'),'active','inactive')}\n    class UE6 ${if(is_state('sensor.aktiver_knoten','UE6'),'active','inactive')}\n    class UE7 ${if(is_state('sensor.aktiver_knoten','UE7'),'active','inactive')}\n    class UE8 ${if(is_state('sensor.aktiver_knoten','UE8'),'active','inactive')}\n    class UE9 ${if(is_state('sensor.aktiver_knoten','UE9'),'active','inactive')}\n    class UE10 ${if(is_state('sensor.aktiver_knoten','UE10'),'active','inactive')}\n    class VBM ${if(is_state('sensor.aktiver_knoten','VBM'),'active','inactive')}"
             },
             {
               "type": "entities",
@@ -118,6 +118,10 @@
                 {
                   "entity": "input_boolean.sim_actor_wallbox",
                   "name": "Wallbox aus/ein"
+                },
+                {
+                  "entity": "sensor.batterie_soll_modus",
+                  "name": "Batterie-Modus (Soll)"
                 }
               ]
             }
