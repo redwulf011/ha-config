@@ -53,8 +53,14 @@ Wichtige Entities:
 - Kachel "Überschussladen": PV-Überschuss, Zielstrom, Ist-Strom, Ladeleistung, Algorithmus-Phase
 - ApexCharts-Card installiert (www/), aber wegen Konfigurationsfehler deaktiviert
 
-### Dateizugriff
-- `automations.yaml`, `configuration.yaml`, `custom_components/ocpp/number.py` — beschreibbar (chown)
+### Dateizugriff & Sync
+- `automations.yaml`, `configuration.yaml` — direkt beschreibbar nach `/var/snap/home-assistant-snap/695/`
+- `.storage/lovelace.entw_algo` — root-owned, nur via systemd-run kopierbar
+- **⚠️ Systemd Path Watcher aktiv:** `sync-ha-config.path` überwacht Workspace-Dateien und kopiert automatisch ins Snap-Verzeichnis bei Änderung
+- **⚠️ Nach JEDER Änderung: HA neustarten!** → `systemctl restart snap.home-assistant-snap.home-assistant-snap.service`
+  (dann poll bis HTTP 200)
+- Workspace → Snap: automatisch via Path Watcher (nach Dateisave)
+- Snap → Workspace: muss manuell gemacht werden (hier arbeiten wir im Workspace)
 
 ## About Wolfgang
 - Timezone: Europe/Berlin (UTC+1/+2)
