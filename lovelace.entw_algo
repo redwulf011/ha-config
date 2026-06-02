@@ -27,6 +27,10 @@
                   "name": "Netz (kW)"
                 },
                 {
+                  "entity": "input_select.batterie_modus",
+                  "name": "Batterie-Modus"
+                },
+                {
                   "entity": "input_number.sim_batterie_leistung",
                   "name": "Batterie (kW)"
                 },
@@ -35,20 +39,16 @@
                   "name": "Batterie (%)"
                 },
                 {
+                  "entity": "input_select.sim_connector",
+                  "name": "Connector"
+                },
+                {
                   "entity": "input_number.sim_wallbox_strom",
                   "name": "Wallbox Strom (A)"
                 },
                 {
                   "entity": "input_boolean.sim_wallbox_ein",
                   "name": "Wallbox aus/ein"
-                },
-                {
-                  "entity": "input_select.sim_connector",
-                  "name": "Connector"
-                },
-                {
-                  "entity": "input_select.batterie_modus",
-                  "name": "Batterie-Modus"
                 }
               ]
             },
