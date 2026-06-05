@@ -41,6 +41,39 @@
         entity_id: input_boolean.sim_actor_wallbox
     # Batterie in Backup-Modus (entlädt sich nicht fürs Auto)
     - action: shell_command.batt_backup
+    # Überschussladen-Automationen deaktivieren
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_betriebsart_2
+      data:
+        option: "Manuell"
+
+- id: "algo_voll_bis_morgen"
+  alias: "ALGO - Zustand Voll bis Morgen"
+  trigger:
+    - platform: homeassistant
+      event: start
+    - platform: state
+      entity_id: input_select.sim_betriebsart
+      to: "Voll bis Morgen"
+  action:
+    # Volle Ladung mit 16A, keine dynamische Regelung
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.sim_actor_strom
+      data:
+        value: 16
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.sim_actor_wallbox
+    # Batterie in Backup-Modus (entlädt sich nicht fürs Auto)
+    - action: shell_command.batt_backup
+    # Überschussladen-Automationen deaktivieren
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_betriebsart_2
+      data:
+        option: "Manuell"
 
 - id: "algo_aus"
   alias: "ALGO - Zustand Aus"
@@ -62,6 +95,12 @@
         entity_id: input_boolean.sim_actor_wallbox
     # Batterie zurück in Eigenverbrauch
     - action: shell_command.batt_self_consumption
+    # Überschussladen-Automationen wieder aktivieren (für nächste Umschaltung)
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_betriebsart_2
+      data:
+        option: "Ueberschussladen"
 
 - id: "reset_betriebsart"
   alias: "Reset Betriebsart bei Stecker aus"
@@ -216,6 +255,12 @@
         option: "Warte Überschuss"
     # Batterie zurück in Eigenverbrauch
     - action: shell_command.batt_self_consumption
+    # Sicherstellen, dass Überschussladen-Modus aktiv ist
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_betriebsart_2
+      data:
+        option: "Ueberschussladen"
 
 - id: "sub_warte_zu_laden"
   alias: "SUB - Warte → Laden 6A"

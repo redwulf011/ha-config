@@ -73,3 +73,4 @@ Wichtige Entities:
 - Honest and casual communication
 - Gets things done
 - Emoji: 🐾
+- **Update-Instruktion:** Sobald ein Update für mich verfügbar ist, installieren (eingetragen 05.06.2026)
