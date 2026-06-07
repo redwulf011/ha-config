@@ -1,6 +1,10 @@
 # Loads default set of integrations. Do not remove.
 default_config:
 
+shell_command:
+  batt_backup: "python3 /var/snap/home-assistant-snap/695/www/set_battery_mode.py backup"
+  batt_self_consumption: "python3 /var/snap/home-assistant-snap/695/www/set_battery_mode.py self-consumption"
+
 # Load frontend themes from the themes folder
 frontend:
   themes: !include_dir_merge_named themes
@@ -8,6 +12,28 @@ frontend:
 automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
+
+input_select:
+  sim_algo_zustand:
+    name: "Sim Algo Zustand"
+    options:
+      - "Warte Überschuss"
+      - "Laden 6A"
+      - "Laden 7A"
+      - "Laden 8A"
+      - "Laden 9A"
+      - "Laden 10A"
+    initial: "Warte Überschuss"
+    icon: mdi:state-machine
+
+  batterie_modus:
+    name: "Batterie Modus"
+    options:
+      - "🔋 Eigenverbrauch"
+      - "🔒 Backup"
+    initial: "🔋 Eigenverbrauch"
+    icon: mdi:battery
+
 
 template:
   - sensor:
@@ -218,8 +244,22 @@ template:
             {{ states('sensor.vestel_ev_status_connector') }}
           {% endif %}
 
-      # === Schicht 3: Effektive Werte ===
+  - trigger:
+      - platform: state
+        entity_id: input_select.sim_algo_zustand
+      - platform: time_pattern
+        seconds: "/1"
+    sensor:
+      - name: "Sim Zeit seit Wechsel"
+        unique_id: sim_zeit_seit_wechsel
+        unit_of_measurement: "s"
+        icon: mdi:timer-outline
+        state: >
+          {% set last = states['input_select.sim_algo_zustand'].last_changed %}
+          {{ (as_timestamp(now()) - as_timestamp(last)) | int }}
 
+  - sensor:
+      # === Schicht 3: Effektive Werte ===
       - name: "Aktiver Knoten"
         unique_id: aktiver_knoten
         state: >
@@ -230,9 +270,42 @@ template:
             {% set sub = states('input_select.sim_algo_zustand') %}
             {% if sub == 'Warte Überschuss' %}UE0
             {% elif sub == 'Laden 6A' %}UE6
+            {% elif sub == 'Laden 7A' %}UE7
+            {% elif sub == 'Laden 8A' %}UE8
+            {% elif sub == 'Laden 9A' %}UE9
+            {% elif sub == 'Laden 10A' %}UE10
             {% else %}UEB{% endif %}
           {% elif bt == 'Voll bis Morgen' %}VBM
           {% else %}AUS{% endif %}
+
+      # Ist-Modus der Batterie (wie Connector: input_select wird auto-synchronisiert)
+      - name: "Batterie Ist Modus"
+        unique_id: batterie_ist_modus
+        state: "{{ states('input_select.batterie_modus') }}"
+        icon: mdi:battery
+
+      # Soll-Modus der Batterie (was die Automation setzen will)
+      - name: "Batterie Soll Modus"
+        unique_id: batterie_soll_modus
+        state: >
+          {% set bt = states('input_select.sim_betriebsart') %}
+          {% if bt == 'Sofortladen 16A' %}🔒 Backup
+          {% else %}🔋 Eigenverbrauch
+          {% endif %}
+        icon: mdi:battery
+
+      # Vergleichswert für Schwellenvergleich (Up & Down, beide identisch)
+      # Zeigt den Wert, der mit den Schwellen an den Pfeilen verglichen wird.
+      # Ohne Batterie-Entladung: nur netz+netz−bat (kein -1,3 mehr)
+      - name: "Vergleichswert"
+        unique_id: vergleichswert
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set netz = states('input_number.sim_netz') | float(0) %}
+          {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
+          {{ (netz + bat) | round(2) }}
 
       # Batterieentladung (nur positive Werte)
       - name: "Batterieentladung Leistung"
@@ -248,47 +321,32 @@ template:
       - name: "Aktuelle Übergänge"
         unique_id: aktuelle_uebergaenge
         state: >
-          {% set node = states('sensor.aktiver_knoten') %}
-          {% set soc = states('sensor.sim_eff_soc') | float(0) %}
-          {% set soc_text = '(SoC<' + soc|string + '%)' if soc < 80 else '(SoC≥' + soc|string + '%)' %}
-          {% set start_thresh = '4.24' if soc < 80 else '4.14' %}
-          {% if node == 'AUS' %}
-            🔄 Übergänge von AUS:
-            → SOF  wenn Betriebsart = Sofortladen 16A
-            → VBM  wenn Betriebsart = Voll bis Morgen
-            → UEB  wenn Betriebsart = Überschussladen
-          {% elif node == 'SOF' %}
-            🔄 Übergänge von SOF (Sofortladen):
-            → AUS  wenn Betriebsart = Aus
-            → VBM  wenn Betriebsart = Voll bis Morgen
-            → UEB  wenn Betriebsart = Überschussladen
-          {% elif node == 'VBM' %}
-            🔄 Übergänge von VBM (Voll bis Morgen):
-            → AUS  wenn Betriebsart = Aus
-            → SOF  wenn Betriebsart = Sofortladen 16A
-            → UEB  wenn Betriebsart = Überschussladen
-          {% elif node == 'UE0' %}
-            🔄 Übergänge von UE0 (Warte):
-            → UE6  wenn sim_netz ≤ -{{ start_thresh }}kW {{ soc_text }}
-            → AUS    wenn Betriebsart = Aus
-            → SOF    wenn Betriebsart = Sofortladen 16A
-            → VBM    wenn Betriebsart = Voll bis Morgen
-          {% elif node == 'UE6' %}
-            🔄 Übergänge von UE6 (Laden):
-          {% elif node == 'UE6+' %}
-            🔄 Übergänge von UE6+ (Laden+):
-            → UE0  wenn sim_netz ≥ 0 (SoC<80%) / ≥ 0.1 (SoC≥80%)
-            → AUS    wenn Betriebsart = Aus
-            → SOF    wenn Betriebsart = Sofortladen 16A
-            → VBM    wenn Betriebsart = Voll bis Morgen
-          {% else %}
-            🔄 Keine Übergänge definiert für {{ node }}
-          {% endif %}
-        icon: >
-          {% set node = states('sensor.aktiver_knoten') %}
-          {% if node == 'AUS' %}mdi:power-off{% elif node == 'SOF' %}mdi:lightning-bolt{% elif node == 'VBM' %}mdi:weather-night{% elif node == 'UE0' %}mdi:weather-sunny{% elif node == 'UE6' %}mdi:ev-station{% elif node == 'UE6+' %}mdi:ev-station{% else %}mdi:help-circle{% endif %}
-
-
+          {%- set bt = states('input_select.sim_betriebsart') -%}
+          {%- if bt == 'Aus' -%}
+          🔄 Aus: → Überschussladen / → Sofortladen 16A
+          {%- elif bt == 'Sofortladen 16A' -%}
+          🔄 Sofortladen: → Überschussladen / → Aus
+          {%- elif bt == 'Ueberschussladen' -%}
+          {%- set state = states('input_select.sim_algo_zustand') -%}
+          {%- if state == 'Warte Überschuss' -%}
+          🔄 Warte: →6A ≤ -4,14 | Aus | 16A
+          {%- elif state == 'Laden 6A' -%}
+          🔄 6A: →7A ≤ -4,83 | →Warte > 0 | Aus | 16A
+          {%- elif state == 'Laden 7A' -%}
+          🔄 7A: →8A ≤ -5,52 | →6A > 0 | Warte | Aus | 16A
+          {%- elif state == 'Laden 8A' -%}
+          🔄 8A: →9A ≤ -6,21 | →7A > 0 | Warte | Aus | 16A
+          {%- elif state == 'Laden 9A' -%}
+          🔄 9A: →10A ≤ -6,90 | →8A > 0 | Warte | Aus | 16A
+          {%- elif state == 'Laden 10A' -%}
+          🔄 10A: →9A > 0 | Warte | Aus | 16A
+          {%- else -%}
+          🔄 Überschuss: {{ state }}
+          {%- endif -%}
+          {%- else -%}
+          🔄 {{ bt }}: {{ states('input_select.sim_algo_zustand') }}
+          {%- endif -%}
+        icon: mdi:transfer
 sensor:
   - platform: integration
     name: "Produktion heute"
@@ -338,13 +396,17 @@ sensor:
     round: 2
     method: left
 
-  - platform: integration
-    name: "Wallbox heute"
-    unique_id: wallbox_heute
-    source: sensor.vestel_ev_power_active_import
-    unit_time: h
-    round: 2
-    method: left
+
+input_number:
+  verzoegerung_wechsel:
+    name: "Verzögerung Wechsel"
+    min: 0
+    max: 60
+    step: 1
+    initial: 30
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    mode: slider
 
 utility_meter:
   produktion_tag:

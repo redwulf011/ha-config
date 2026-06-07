@@ -6,7 +6,143 @@
     "config": {
       "views": [
         {
-          "title": "Simulation",
+          "type": "masonry",
+          "title": "Spielerei",
+          "path": "spielerei",
+          "icon": "mdi:awning-outline",
+          "cards": [
+            {
+              "type": "vertical-stack",
+              "title": "\u26a1 Energiefl\u00fcsse",
+              "cards": [
+                {
+                  "type": "grid",
+                  "columns": 3,
+                  "cards": [
+                    {
+                      "type": "gauge",
+                      "entity": "sensor.envoy_122323101510_aktuelle_stromproduktion",
+                      "name": "PV",
+                      "unit": "kW",
+                      "min": 0,
+                      "max": 12,
+                      "severity": {
+                        "green": 4,
+                        "yellow": 2,
+                        "red": 0
+                      }
+                    },
+                    {
+                      "type": "gauge",
+                      "entity": "sensor.envoy_122323101510_aktueller_stromverbrauch",
+                      "name": "Haus",
+                      "unit": "kW",
+                      "min": 0,
+                      "max": 10,
+                      "severity": {
+                        "green": 2,
+                        "yellow": 5,
+                        "red": 0
+                      }
+                    },
+                    {
+                      "type": "gauge",
+                      "entity": "sensor.pv_uberschuss",
+                      "name": "PV-Export",
+                      "unit": "kW",
+                      "min": 0,
+                      "max": 12,
+                      "severity": {
+                        "green": 4,
+                        "yellow": 2,
+                        "red": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "grid",
+                  "columns": 2,
+                  "cards": [
+                    {
+                      "type": "gauge",
+                      "entity": "sensor.netzimport_leistung",
+                      "name": "Netzbezug",
+                      "unit": "kW",
+                      "min": 0,
+                      "max": 8,
+                      "severity": {
+                        "green": 1,
+                        "yellow": 3,
+                        "red": 0
+                      }
+                    },
+                    {
+                      "type": "gauge",
+                      "entity": "sensor.netzeinspeisung_leistung",
+                      "name": "Netzeinspeisung",
+                      "unit": "kW",
+                      "min": 0,
+                      "max": 12,
+                      "severity": {
+                        "green": 4,
+                        "yellow": 2,
+                        "red": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "grid",
+                  "columns": 3,
+                  "cards": [
+                    {
+                      "type": "gauge",
+                      "entity": "sensor.batterieladung_leistung",
+                      "name": "Batterie laden",
+                      "unit": "kW",
+                      "min": 0,
+                      "max": 5,
+                      "severity": {
+                        "green": 4,
+                        "yellow": 2,
+                        "red": 0
+                      }
+                    },
+                    {
+                      "type": "gauge",
+                      "entity": "sensor.batterieentladung_leistung",
+                      "name": "Batterie entladen",
+                      "unit": "kW",
+                      "min": 0,
+                      "max": 5,
+                      "severity": {
+                        "green": 1,
+                        "yellow": 3,
+                        "red": 5
+                      }
+                    },
+                    {
+                      "type": "gauge",
+                      "entity": "sensor.envoy_122323101510_batterie",
+                      "name": "Batterie %",
+                      "unit": "%",
+                      "min": 0,
+                      "max": 100,
+                      "severity": {
+                        "green": 50,
+                        "yellow": 25,
+                        "red": 10
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Wallbox ",
           "path": "sim",
           "cards": [
             {
@@ -17,10 +153,6 @@
                 {
                   "entity": "input_select.sim_modus_2",
                   "name": "Modus"
-                },
-                {
-                  "entity": "sensor.envoy_status",
-                  "name": "Envoy"
                 },
                 {
                   "entity": "input_number.sim_pv_erzeugung",
@@ -67,7 +199,7 @@
                 },
                 {
                   "entity": "input_number.verzoegerung_wechsel",
-                  "name": "Verz\u00f6gerung Netzwechsel"
+                  "name": "Verz\u00f6gerung Wechsel"
                 }
               ]
             },
@@ -86,11 +218,7 @@
                     },
                     {
                       "entity": "sensor.sim_zeit_seit_wechsel",
-                      "name": "Zeit seit Statuswechsel"
-                    },
-                    {
-                      "entity": "sensor.zeit_seit_netzwechsel",
-                      "name": "Zeit seit Netzwechsel"
+                      "name": "Zeit seit Wechsel"
                     },
                     {
                       "entity": "sensor.vergleichswert",
@@ -133,7 +261,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "type": "masonry"
         }
       ]
     }

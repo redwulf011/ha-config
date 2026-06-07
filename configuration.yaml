@@ -247,16 +247,67 @@ template:
   - trigger:
       - platform: state
         entity_id: input_select.sim_algo_zustand
+      - platform: state
+        entity_id: input_number.sim_netz
       - platform: time_pattern
         seconds: "/1"
     sensor:
-      - name: "Sim Zeit seit Wechsel"
+      - name: "Zeit seit Statuswechsel"
         unique_id: sim_zeit_seit_wechsel
         unit_of_measurement: "s"
         icon: mdi:timer-outline
         state: >
           {% set last = states['input_select.sim_algo_zustand'].last_changed %}
           {{ (as_timestamp(now()) - as_timestamp(last)) | int }}
+
+      - name: "Zeit seit Netzwechsel"
+        unique_id: sim_zeit_seit_netzwechsel
+        unit_of_measurement: "s"
+        icon: mdi:timer-sync
+        state: >
+          {% set algo_chg = as_timestamp(states['input_select.sim_algo_zustand'].last_changed) %}
+          {% set netz_chg = as_timestamp(states['input_number.sim_netz'].last_changed) %}
+          {% if algo_chg > netz_chg %}
+            0
+          {% else %}
+            {{ (as_timestamp(now()) - netz_chg) | int }}
+          {% endif %}
+
+  - trigger:
+      - platform: time_pattern
+        minutes: "/1"
+      - platform: state
+        entity_id: sensor.envoy_122323101510_aktueller_nettostromverbrauch
+    sensor:
+      # Envoy Lebenzeichen (mit Zeit-Trigger, damit es auch bei stillstehenden Sensoren neu berechnet wird)
+      - name: "Envoy Status"
+        unique_id: envoy_status
+        state: >
+          {% set netto = states['sensor.envoy_122323101510_aktueller_nettostromverbrauch'] %}
+          {% if netto is not defined or netto.state in ['unavailable', 'unknown', 'none'] %}
+            🔴 Offline
+          {% else %}
+            {% set age_s = (as_timestamp(now()) - as_timestamp(netto.last_updated)) | int %}
+            {% if age_s < 300 %}
+              🟢 Live
+            {% elif age_s < 1800 %}
+              🟡 {{ (age_s // 60) }}min alt
+            {% else %}
+              🔴 {{ (age_s // 60) }}min alt
+            {% endif %}
+          {% endif %}
+        icon: >
+          {% set netto = states['sensor.envoy_122323101510_aktueller_nettostromverbrauch'] %}
+          {% if netto is not defined or netto.state in ['unavailable', 'unknown', 'none'] %}
+            mdi:alert-circle-outline
+          {% else %}
+            {% set age_s = (as_timestamp(now()) - as_timestamp(netto.last_updated)) | int %}
+            {% if age_s < 1800 %}
+              mdi:check-network-outline
+            {% else %}
+              mdi:alert-circle-outline
+            {% endif %}
+          {% endif %}
 
   - sensor:
       # === Schicht 3: Effektive Werte ===
@@ -347,6 +398,7 @@ template:
           🔄 {{ bt }}: {{ states('input_select.sim_algo_zustand') }}
           {%- endif -%}
         icon: mdi:transfer
+
 sensor:
   - platform: integration
     name: "Produktion heute"
@@ -399,13 +451,13 @@ sensor:
 
 input_number:
   verzoegerung_wechsel:
-    name: "Verzögerung Wechsel"
+    name: "Verzögerung Netzwechsel"
     min: 0
     max: 30
     step: 1
-    initial: 30
+    initial: 5
     unit_of_measurement: "s"
-    icon: mdi:timer-outline
+    icon: mdi:timer-sync
     mode: slider
 
 utility_meter:

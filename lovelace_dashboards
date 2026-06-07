@@ -10,16 +10,14 @@
         "title": "Karte",
         "url_path": "map",
         "show_in_sidebar": true,
-        "mode": "storage",
         "require_admin": false
       },
       {
         "id": "entw_algo",
-        "title": "Entwicklung",
-        "url_path": "entw-algo",
-        "icon": "mdi:code-braces",
+        "title": "Wallbox",
+        "url_path": "wallbox",
+        "icon": "mdi:ev-station",
         "show_in_sidebar": true,
-        "mode": "storage",
         "require_admin": false
       }
     ]

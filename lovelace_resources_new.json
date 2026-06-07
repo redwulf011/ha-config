@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "lovelace_resources",
+  "data": {
+    "items": [
+      {
+        "id": "eb4614b726974ea4b9ef3c226fa3e8fa",
+        "url": "/local/ha-mermaid.js",
+        "type": "module"
+      },
+      {
+        "id": "apexcharts",
+        "url": "/local/apexcharts-card.js",
+        "type": "module"
+      }
+    ]
+  }
+}

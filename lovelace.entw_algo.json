@@ -6,7 +6,27 @@
     "config": {
       "views": [
         {
-          "title": "Simulation",
+          "type": "masonry",
+          "title": "Spielerei",
+          "path": "spielerei",
+          "icon": "mdi:awning-outline",
+          "cards": [
+            {
+              "type": "gauge",
+              "entity": "sensor.netzeinspeisung_leistung",
+              "min": -9,
+              "max": 50,
+              "needle": true,
+              "severity": {
+                "green": 5,
+                "yellow": 1,
+                "red": 0
+              }
+            }
+          ]
+        },
+        {
+          "title": "Wallbox ",
           "path": "sim",
           "cards": [
             {
@@ -17,10 +37,6 @@
                 {
                   "entity": "input_select.sim_modus_2",
                   "name": "Modus"
-                },
-                {
-                  "entity": "sensor.envoy_status",
-                  "name": "Envoy"
                 },
                 {
                   "entity": "input_number.sim_pv_erzeugung",
@@ -67,7 +83,7 @@
                 },
                 {
                   "entity": "input_number.verzoegerung_wechsel",
-                  "name": "Verz\u00f6gerung Netzwechsel"
+                  "name": "Verz\u00f6gerung Wechsel"
                 }
               ]
             },
@@ -86,11 +102,7 @@
                     },
                     {
                       "entity": "sensor.sim_zeit_seit_wechsel",
-                      "name": "Zeit seit Statuswechsel"
-                    },
-                    {
-                      "entity": "sensor.zeit_seit_netzwechsel",
-                      "name": "Zeit seit Netzwechsel"
+                      "name": "Zeit seit Wechsel"
                     },
                     {
                       "entity": "sensor.vergleichswert",
@@ -133,7 +145,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "type": "masonry"
         }
       ]
     }

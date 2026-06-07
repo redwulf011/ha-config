@@ -83,6 +83,9 @@ PROSPECT_SOURCES = {
     "XXXLutz Möbelhäuser": {
         "Wertheim": "https://www.kaufda.de/Wertheim/aktuelle-Prospekte",
     },
+    "Getränke Fritze": {
+        "Höchberg": "https://www.getraenke-fritze.de/angebote",
+    },
 }
 
 # ─── Kalenderwoche berechnen ──────────────────────────────────────

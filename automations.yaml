@@ -19,6 +19,16 @@
         entity_id: input_select.sim_betriebsart
       data:
         option: "Ueberschussladen"
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_betriebsart_2
+      data:
+        option: "Ueberschussladen"
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.sim_algo_zustand
+      data:
+        option: "Warte Überschuss"
 
 - id: "algo_sofortladen"
   alias: "ALGO - Zustand Sofortladen"
@@ -122,54 +132,114 @@
         option: "Ueberschussladen"
 - id: "sim_auto_sync_slider"
   alias: "SIM - Auto Sync Slider"
+  mode: single
   trigger:
     - platform: homeassistant
       event: start
-    - platform: time_pattern
-      seconds: "/1"
     - platform: state
       entity_id: input_select.sim_modus_2
       to: Auto
+    - platform: state
+      entity_id:
+        - sensor.envoy_122323101510_aktuelle_stromproduktion
+        - sensor.envoy_122323101510_aktueller_stromverbrauch
+        - sensor.envoy_122323101510_aktueller_nettostromverbrauch
+        - sensor.envoy_batterieleistung
+        - sensor.envoy_122323101510_batterie
+        - number.vestel_ev_maximum_current
   condition:
     - condition: state
       entity_id: input_select.sim_modus_2
       state: Auto
   action:
-    - action: input_number.set_value
-      target:
-        entity_id: input_number.sim_pv_erzeugung
-      data:
-        value: "{{ states('sensor.envoy_122323101510_aktuelle_stromproduktion') | float(0) | round(2) }}"
-    - action: input_number.set_value
-      target:
-        entity_id: input_number.sim_hausverbrauch
-      data:
-        value: "{{ states('sensor.envoy_122323101510_aktueller_stromverbrauch') | float(0) | round(2) }}"
-    - action: input_number.set_value
-      target:
-        entity_id: input_number.sim_batterie_soc
-      data:
-        value: "{{ states('sensor.envoy_122323101510_batterie') | float(0) | round(0) }}"
-    - action: input_number.set_value
-      target:
-        entity_id: input_number.sim_wallbox_strom
-      data:
-        value: "{{ states('number.vestel_ev_maximum_current') | float(0) | round(0) }}"
-    - action: input_number.set_value
-      target:
-        entity_id: input_number.sim_netz
-      data:
-        value: "{{ states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) | round(2) }}"
-    - action: input_number.set_value
-      target:
-        entity_id: input_number.sim_batterie_leistung
-      data:
-        value: "{{ states('sensor.envoy_batterieleistung') | float(0) | round(2) }}"
-    - action: input_select.select_option
-      target:
-        entity_id: input_select.sim_connector
-      data:
-        option: "{{ states('sensor.vestel_ev_status_connector') }}"
+    # Jede Zahl wird nur geschrieben, wenn sich der gerundete Wert geändert hat.
+    # Vermeidet unnötige state_changes → entlastet SUB-Automationen.
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.envoy_122323101510_aktuelle_stromproduktion') | float(0) | round(2)
+                   != states('input_number.sim_pv_erzeugung') | float(0) }}
+          sequence:
+            - action: input_number.set_value
+              target:
+                entity_id: input_number.sim_pv_erzeugung
+              data:
+                value: "{{ states('sensor.envoy_122323101510_aktuelle_stromproduktion') | float(0) | round(2) }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.envoy_122323101510_aktueller_stromverbrauch') | float(0) | round(2)
+                   != states('input_number.sim_hausverbrauch') | float(0) }}
+          sequence:
+            - action: input_number.set_value
+              target:
+                entity_id: input_number.sim_hausverbrauch
+              data:
+                value: "{{ states('sensor.envoy_122323101510_aktueller_stromverbrauch') | float(0) | round(2) }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.envoy_122323101510_batterie') | float(0) | round(0)
+                   != states('input_number.sim_batterie_soc') | float(0) }}
+          sequence:
+            - action: input_number.set_value
+              target:
+                entity_id: input_number.sim_batterie_soc
+              data:
+                value: "{{ states('sensor.envoy_122323101510_batterie') | float(0) | round(0) }}"
+    - choose:
+        # Nur schreiben, wenn value im gültigen Bereich [6, 16] liegt
+        - conditions:
+            - condition: template
+              value_template: >
+                {% set v = states('number.vestel_ev_maximum_current') | float(0) | round(0) | int %}
+                {{ v >= 6 and v <= 16 and v != states('input_number.sim_wallbox_strom') | int(0) }}
+          sequence:
+            - action: input_number.set_value
+              target:
+                entity_id: input_number.sim_wallbox_strom
+              data:
+                value: "{{ states('number.vestel_ev_maximum_current') | float(0) | round(0) | int }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) | round(2)
+                   != states('input_number.sim_netz') | float(0) }}
+          sequence:
+            - action: input_number.set_value
+              target:
+                entity_id: input_number.sim_netz
+              data:
+                value: "{{ states('sensor.envoy_122323101510_aktueller_nettostromverbrauch') | float(0) | round(2) }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.envoy_batterieleistung') | float(0) | round(2)
+                   != states('input_number.sim_batterie_leistung') | float(0) }}
+          sequence:
+            - action: input_number.set_value
+              target:
+                entity_id: input_number.sim_batterie_leistung
+              data:
+                value: "{{ states('sensor.envoy_batterieleistung') | float(0) | round(2) }}"
+    # Input-Selects & Boolean immer aktualisieren (set_option/on/off sind idempotent)
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {% set v = states('sensor.vestel_ev_status_connector') %}
+                {{ v not in ['unavailable', 'unknown', 'none'] }}
+          sequence:
+            - action: input_select.select_option
+              target:
+                entity_id: input_select.sim_connector
+              data:
+                option: "{{ states('sensor.vestel_ev_status_connector') }}"
     - action: input_select.select_option
       target:
         entity_id: input_select.batterie_modus
@@ -284,8 +354,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat <= -4.14 and zeit >= delay }}
   action:
@@ -327,8 +396,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat > 0 and zeit >= delay }}
   action:
@@ -352,10 +420,26 @@
     - platform: state
       entity_id: input_select.aktoren_modus
       to: "Aktiv"
+    - platform: time_pattern
+      seconds: "/5"
   condition:
     - condition: state
       entity_id: input_select.aktoren_modus
       state: "Aktiv"
+    - condition: or
+      conditions:
+        # Direkte Änderung → immer schreiben
+        - condition: template
+          value_template: "{{ trigger.platform == 'state' }}"
+        # Periodischer Check: nach Verzögerung und bei Abweichung wiederholen
+        - condition: template
+          value_template: >
+            {% set a = states('input_boolean.sim_actor_wallbox') %}
+            {% set s = states('input_boolean.sim_wallbox_ein') %}
+            {% set last = states['input_boolean.sim_actor_wallbox'].last_changed %}
+            {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+            {% set delay = states('input_number.verzoegerung_wechsel') | int(30) %}
+            {{ zeit >= delay and a != s }}
   action:
     - choose:
         - conditions:
@@ -384,10 +468,26 @@
     - platform: state
       entity_id: input_select.aktoren_modus
       to: "Aktiv"
+    - platform: time_pattern
+      seconds: "/5"
   condition:
     - condition: state
       entity_id: input_select.aktoren_modus
       state: "Aktiv"
+    - condition: or
+      conditions:
+        # Direkte Änderung → immer schreiben
+        - condition: template
+          value_template: "{{ trigger.platform == 'state' }}"
+        # Periodischer Check: nach Verzögerung und bei Abweichung wiederholen
+        - condition: template
+          value_template: >
+            {% set a = states('input_number.sim_actor_strom') | int(0) %}
+            {% set s = states('input_number.sim_wallbox_strom') | float(0) | int %}
+            {% set last = states['input_number.sim_actor_strom'].last_changed %}
+            {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+            {% set delay = states('input_number.verzoegerung_wechsel') | int(30) %}
+            {{ zeit >= delay and a != s }}
   action:
     - action: number.set_value
       target:
@@ -417,8 +517,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat <= -0.69 and zeit >= delay }}
   action:
@@ -455,8 +554,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat > 0 and zeit >= delay }}
   action:
@@ -493,8 +591,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat <= -0.69 and zeit >= delay }}
   action:
@@ -531,8 +628,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat > 0 and zeit >= delay }}
   action:
@@ -569,8 +665,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat <= -0.69 and zeit >= delay }}
   action:
@@ -607,8 +702,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat > 0 and zeit >= delay }}
   action:
@@ -645,8 +739,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat <= -0.69 and zeit >= delay }}
   action:
@@ -683,8 +776,7 @@
       value_template: >
         {% set netz = states('input_number.sim_netz') | float(0) %}
         {% set bat = states('input_number.sim_batterie_leistung') | float(0) %}
-        {% set last = states['input_select.sim_algo_zustand'].last_changed %}
-        {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
+        {% set zeit = states('sensor.zeit_seit_netzwechsel') | int(0) %}
         {% set delay = states('input_number.verzoegerung_wechsel') | int(0) %}
         {{ netz + bat > 0 and zeit >= delay }}
   action:
