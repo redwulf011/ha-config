@@ -26,15 +26,6 @@ input_select:
     initial: "Warte Überschuss"
     icon: mdi:state-machine
 
-  batterie_modus:
-    name: "Batterie Modus"
-    options:
-      - "🔋 Eigenverbrauch"
-      - "🔒 Backup"
-    initial: "🔋 Eigenverbrauch"
-    icon: mdi:battery
-
-
 template:
   - sensor:
       # Batterieleistung (kW) - berechnet
@@ -244,6 +235,15 @@ template:
             {{ states('sensor.vestel_ev_status_connector') }}
           {% endif %}
 
+      # Shelly Ladeziegel (W→kW)
+      - name: "Ladeziegel (kW)"
+        unique_id: ladeziegel_kw
+        unit_of_measurement: "kW"
+        state_class: measurement
+        state: >
+          {% set w = states('sensor.shellyplugsg3_8cbfea932ad4_power') | float(0) %}
+          {{ '%.3f' | format(w / 1000) }}
+
   - trigger:
       - platform: state
         entity_id: input_select.sim_algo_zustand
@@ -328,22 +328,6 @@ template:
             {% else %}UEB{% endif %}
           {% elif bt == 'Voll bis Morgen' %}VBM
           {% else %}AUS{% endif %}
-
-      # Ist-Modus der Batterie (wie Connector: input_select wird auto-synchronisiert)
-      - name: "Batterie Ist Modus"
-        unique_id: batterie_ist_modus
-        state: "{{ states('input_select.batterie_modus') }}"
-        icon: mdi:battery
-
-      # Soll-Modus der Batterie (was die Automation setzen will)
-      - name: "Batterie Soll Modus"
-        unique_id: batterie_soll_modus
-        state: >
-          {% set bt = states('input_select.sim_betriebsart') %}
-          {% if bt == 'Sofortladen 16A' %}🔒 Backup
-          {% else %}🔋 Eigenverbrauch
-          {% endif %}
-        icon: mdi:battery
 
       # Vergleichswert für Schwellenvergleich (Up & Down, beide identisch)
       # Zeigt den Wert, der mit den Schwellen an den Pfeilen verglichen wird.

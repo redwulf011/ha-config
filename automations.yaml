@@ -240,15 +240,6 @@
                 entity_id: input_select.sim_connector
               data:
                 option: "{{ states('sensor.vestel_ev_status_connector') }}"
-    - action: input_select.select_option
-      target:
-        entity_id: input_select.batterie_modus
-      data:
-        option: >
-          {% set m = states('select.envoy_122323101510_speichermodus') %}
-          {% if m == 'backup' %}🔒 Backup
-          {% else %}🔋 Eigenverbrauch
-          {% endif %}
     - choose:
         - conditions:
             - condition: state
@@ -420,26 +411,10 @@
     - platform: state
       entity_id: input_select.aktoren_modus
       to: "Aktiv"
-    - platform: time_pattern
-      seconds: "/5"
   condition:
     - condition: state
       entity_id: input_select.aktoren_modus
       state: "Aktiv"
-    - condition: or
-      conditions:
-        # Direkte Änderung → immer schreiben
-        - condition: template
-          value_template: "{{ trigger.platform == 'state' }}"
-        # Periodischer Check: nach Verzögerung und bei Abweichung wiederholen
-        - condition: template
-          value_template: >
-            {% set a = states('input_boolean.sim_actor_wallbox') %}
-            {% set s = states('input_boolean.sim_wallbox_ein') %}
-            {% set last = states['input_boolean.sim_actor_wallbox'].last_changed %}
-            {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
-            {% set delay = states('input_number.verzoegerung_wechsel') | int(30) %}
-            {{ zeit >= delay and a != s }}
   action:
     - choose:
         - conditions:
@@ -468,26 +443,10 @@
     - platform: state
       entity_id: input_select.aktoren_modus
       to: "Aktiv"
-    - platform: time_pattern
-      seconds: "/5"
   condition:
     - condition: state
       entity_id: input_select.aktoren_modus
       state: "Aktiv"
-    - condition: or
-      conditions:
-        # Direkte Änderung → immer schreiben
-        - condition: template
-          value_template: "{{ trigger.platform == 'state' }}"
-        # Periodischer Check: nach Verzögerung und bei Abweichung wiederholen
-        - condition: template
-          value_template: >
-            {% set a = states('input_number.sim_actor_strom') | int(0) %}
-            {% set s = states('input_number.sim_wallbox_strom') | float(0) | int %}
-            {% set last = states['input_number.sim_actor_strom'].last_changed %}
-            {% set zeit = (as_timestamp(now()) - as_timestamp(last)) | int %}
-            {% set delay = states('input_number.verzoegerung_wechsel') | int(30) %}
-            {{ zeit >= delay and a != s }}
   action:
     - action: number.set_value
       target:

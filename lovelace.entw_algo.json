@@ -6,27 +6,7 @@
     "config": {
       "views": [
         {
-          "type": "masonry",
-          "title": "Spielerei",
-          "path": "spielerei",
-          "icon": "mdi:awning-outline",
-          "cards": [
-            {
-              "type": "gauge",
-              "entity": "sensor.netzeinspeisung_leistung",
-              "min": -9,
-              "max": 50,
-              "needle": true,
-              "severity": {
-                "green": 5,
-                "yellow": 1,
-                "red": 0
-              }
-            }
-          ]
-        },
-        {
-          "title": "Wallbox ",
+          "title": "Simulation",
           "path": "sim",
           "cards": [
             {
@@ -39,16 +19,16 @@
                   "name": "Modus"
                 },
                 {
+                  "entity": "sensor.envoy_status",
+                  "name": "Envoy"
+                },
+                {
                   "entity": "input_number.sim_pv_erzeugung",
                   "name": "PV (kW)"
                 },
                 {
                   "entity": "input_number.sim_netz",
                   "name": "Netz (kW)"
-                },
-                {
-                  "entity": "input_select.batterie_modus",
-                  "name": "Batterie-Modus"
                 },
                 {
                   "entity": "input_number.sim_batterie_leistung",
@@ -69,6 +49,10 @@
                 {
                   "entity": "input_boolean.sim_wallbox_ein",
                   "name": "Wallbox aus/ein"
+                },
+                {
+                  "entity": "sensor.ladeziegel_kw",
+                  "name": "Ladeziegel (kW)"
                 }
               ]
             },
@@ -83,7 +67,7 @@
                 },
                 {
                   "entity": "input_number.verzoegerung_wechsel",
-                  "name": "Verz\u00f6gerung Wechsel"
+                  "name": "Verz\u00f6gerung Netzwechsel"
                 }
               ]
             },
@@ -102,7 +86,11 @@
                     },
                     {
                       "entity": "sensor.sim_zeit_seit_wechsel",
-                      "name": "Zeit seit Wechsel"
+                      "name": "Zeit seit Statuswechsel"
+                    },
+                    {
+                      "entity": "sensor.zeit_seit_netzwechsel",
+                      "name": "Zeit seit Netzwechsel"
                     },
                     {
                       "entity": "sensor.vergleichswert",
@@ -140,13 +128,13 @@
                   "name": "Wallbox aus/ein"
                 },
                 {
-                  "entity": "sensor.batterie_soll_modus",
-                  "name": "Batterie-Modus (Soll)"
+                  "entity": "switch.shellyplugsg3_8cbfea932ad4",
+                  "name": "Ladeziegel aus/ein"
                 }
-              ]
+              ],
+              "show_header_toggle": false
             }
-          ],
-          "type": "masonry"
+          ]
         }
       ]
     }

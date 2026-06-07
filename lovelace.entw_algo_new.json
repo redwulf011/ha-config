@@ -6,143 +6,7 @@
     "config": {
       "views": [
         {
-          "type": "masonry",
-          "title": "Spielerei",
-          "path": "spielerei",
-          "icon": "mdi:awning-outline",
-          "cards": [
-            {
-              "type": "vertical-stack",
-              "title": "\u26a1 Energiefl\u00fcsse",
-              "cards": [
-                {
-                  "type": "grid",
-                  "columns": 3,
-                  "cards": [
-                    {
-                      "type": "gauge",
-                      "entity": "sensor.envoy_122323101510_aktuelle_stromproduktion",
-                      "name": "PV",
-                      "unit": "kW",
-                      "min": 0,
-                      "max": 12,
-                      "severity": {
-                        "green": 4,
-                        "yellow": 2,
-                        "red": 0
-                      }
-                    },
-                    {
-                      "type": "gauge",
-                      "entity": "sensor.envoy_122323101510_aktueller_stromverbrauch",
-                      "name": "Haus",
-                      "unit": "kW",
-                      "min": 0,
-                      "max": 10,
-                      "severity": {
-                        "green": 2,
-                        "yellow": 5,
-                        "red": 0
-                      }
-                    },
-                    {
-                      "type": "gauge",
-                      "entity": "sensor.pv_uberschuss",
-                      "name": "PV-Export",
-                      "unit": "kW",
-                      "min": 0,
-                      "max": 12,
-                      "severity": {
-                        "green": 4,
-                        "yellow": 2,
-                        "red": 0
-                      }
-                    }
-                  ]
-                },
-                {
-                  "type": "grid",
-                  "columns": 2,
-                  "cards": [
-                    {
-                      "type": "gauge",
-                      "entity": "sensor.netzimport_leistung",
-                      "name": "Netzbezug",
-                      "unit": "kW",
-                      "min": 0,
-                      "max": 8,
-                      "severity": {
-                        "green": 1,
-                        "yellow": 3,
-                        "red": 0
-                      }
-                    },
-                    {
-                      "type": "gauge",
-                      "entity": "sensor.netzeinspeisung_leistung",
-                      "name": "Netzeinspeisung",
-                      "unit": "kW",
-                      "min": 0,
-                      "max": 12,
-                      "severity": {
-                        "green": 4,
-                        "yellow": 2,
-                        "red": 0
-                      }
-                    }
-                  ]
-                },
-                {
-                  "type": "grid",
-                  "columns": 3,
-                  "cards": [
-                    {
-                      "type": "gauge",
-                      "entity": "sensor.batterieladung_leistung",
-                      "name": "Batterie laden",
-                      "unit": "kW",
-                      "min": 0,
-                      "max": 5,
-                      "severity": {
-                        "green": 4,
-                        "yellow": 2,
-                        "red": 0
-                      }
-                    },
-                    {
-                      "type": "gauge",
-                      "entity": "sensor.batterieentladung_leistung",
-                      "name": "Batterie entladen",
-                      "unit": "kW",
-                      "min": 0,
-                      "max": 5,
-                      "severity": {
-                        "green": 1,
-                        "yellow": 3,
-                        "red": 5
-                      }
-                    },
-                    {
-                      "type": "gauge",
-                      "entity": "sensor.envoy_122323101510_batterie",
-                      "name": "Batterie %",
-                      "unit": "%",
-                      "min": 0,
-                      "max": 100,
-                      "severity": {
-                        "green": 50,
-                        "yellow": 25,
-                        "red": 10
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "title": "Wallbox ",
+          "title": "Simulation",
           "path": "sim",
           "cards": [
             {
@@ -155,16 +19,16 @@
                   "name": "Modus"
                 },
                 {
+                  "entity": "sensor.envoy_status",
+                  "name": "Envoy"
+                },
+                {
                   "entity": "input_number.sim_pv_erzeugung",
                   "name": "PV (kW)"
                 },
                 {
                   "entity": "input_number.sim_netz",
                   "name": "Netz (kW)"
-                },
-                {
-                  "entity": "input_select.batterie_modus",
-                  "name": "Batterie-Modus"
                 },
                 {
                   "entity": "input_number.sim_batterie_leistung",
@@ -185,6 +49,10 @@
                 {
                   "entity": "input_boolean.sim_wallbox_ein",
                   "name": "Wallbox aus/ein"
+                },
+                {
+                  "entity": "sensor.ladeziegel_kw",
+                  "name": "Ladeziegel (kW)"
                 }
               ]
             },
@@ -199,7 +67,7 @@
                 },
                 {
                   "entity": "input_number.verzoegerung_wechsel",
-                  "name": "Verz\u00f6gerung Wechsel"
+                  "name": "Verz\u00f6gerung Netzwechsel"
                 }
               ]
             },
@@ -218,7 +86,11 @@
                     },
                     {
                       "entity": "sensor.sim_zeit_seit_wechsel",
-                      "name": "Zeit seit Wechsel"
+                      "name": "Zeit seit Statuswechsel"
+                    },
+                    {
+                      "entity": "sensor.zeit_seit_netzwechsel",
+                      "name": "Zeit seit Netzwechsel"
                     },
                     {
                       "entity": "sensor.vergleichswert",
@@ -256,13 +128,13 @@
                   "name": "Wallbox aus/ein"
                 },
                 {
-                  "entity": "sensor.batterie_soll_modus",
-                  "name": "Batterie-Modus (Soll)"
+                  "entity": "switch.shellyplugsg3_8cbfea932ad4",
+                  "name": "Ladeziegel aus/ein"
                 }
-              ]
+              ],
+              "show_header_toggle": false
             }
-          ],
-          "type": "masonry"
+          ]
         }
       ]
     }

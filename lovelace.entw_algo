@@ -31,10 +31,6 @@
                   "name": "Netz (kW)"
                 },
                 {
-                  "entity": "input_select.batterie_modus",
-                  "name": "Batterie-Modus"
-                },
-                {
                   "entity": "input_number.sim_batterie_leistung",
                   "name": "Batterie (kW)"
                 },
@@ -53,6 +49,10 @@
                 {
                   "entity": "input_boolean.sim_wallbox_ein",
                   "name": "Wallbox aus/ein"
+                },
+                {
+                  "entity": "sensor.ladeziegel_kw",
+                  "name": "Ladeziegel (kW)"
                 }
               ]
             },
@@ -128,10 +128,11 @@
                   "name": "Wallbox aus/ein"
                 },
                 {
-                  "entity": "sensor.batterie_soll_modus",
-                  "name": "Batterie-Modus (Soll)"
+                  "entity": "switch.shellyplugsg3_8cbfea932ad4",
+                  "name": "Ladeziegel aus/ein"
                 }
-              ]
+              ],
+              "show_header_toggle": false
             }
           ]
         }
