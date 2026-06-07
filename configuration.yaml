@@ -244,8 +244,12 @@ template:
             {{ states('sensor.vestel_ev_status_connector') }}
           {% endif %}
 
-      # === Schicht 3: Effektive Werte ===
-
+  - trigger:
+      - platform: state
+        entity_id: input_select.sim_algo_zustand
+      - platform: time_pattern
+        seconds: "/1"
+    sensor:
       - name: "Sim Zeit seit Wechsel"
         unique_id: sim_zeit_seit_wechsel
         unit_of_measurement: "s"
@@ -254,6 +258,8 @@ template:
           {% set last = states['input_select.sim_algo_zustand'].last_changed %}
           {{ (as_timestamp(now()) - as_timestamp(last)) | int }}
 
+  - sensor:
+      # === Schicht 3: Effektive Werte ===
       - name: "Aktiver Knoten"
         unique_id: aktiver_knoten
         state: >

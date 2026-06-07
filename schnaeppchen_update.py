@@ -279,15 +279,14 @@ def main():
             seen.add(norm)
             all_entries.append(entry)
     
-    # ── Header bauen (falls fehlend) ──────────────────────────
-    if not header or len(header) < 2:
-        header = [
-            "# 🏷️ Schnäppchen & Aktionen",
-            f"> Stand: {TODAY_STR} (automatisch aktualisiert)",
-            f"> Umkreis: 50 km um Waldbrunn (97295)",
-            "",
-            "---",
-        ]
+    # ── Header immer aktuell halten ────────────────────────────
+    header = [
+        "# 🏷️ Schnäppchen & Aktionen",
+        f"> Stand: {TODAY_STR} (automatisch aktualisiert)",
+        "> Umkreis: 50 km um Waldbrunn (97295)",
+        "",
+        "---",
+    ]
     
     # ── Quellen-Abschnitt bauen ────────────────────────────────
     extra_notes = [
