@@ -19,10 +19,6 @@
                   "name": "Modus"
                 },
                 {
-                  "entity": "sensor.envoy_status",
-                  "name": "Envoy"
-                },
-                {
                   "entity": "input_number.sim_pv_erzeugung",
                   "name": "PV (kW)"
                 },
@@ -95,6 +91,10 @@
                     {
                       "entity": "sensor.vergleichswert",
                       "name": "Vergleich"
+                    },
+                    {
+                      "entity": "binary_sensor.ladeziegel_status",
+                      "name": "Ladeziegel aus/ein"
                     }
                   ]
                 },
