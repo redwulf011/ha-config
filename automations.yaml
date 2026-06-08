@@ -49,8 +49,6 @@
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.sim_actor_wallbox
-    # Batterie in Backup-Modus (entlädt sich nicht fürs Auto)
-    - action: shell_command.batt_backup
     # Überschussladen-Automationen deaktivieren
     - action: input_select.select_option
       target:
@@ -76,8 +74,6 @@
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.sim_actor_wallbox
-    # Batterie in Backup-Modus (entlädt sich nicht fürs Auto)
-    - action: shell_command.batt_backup
     # Überschussladen-Automationen deaktivieren
     - action: input_select.select_option
       target:
@@ -103,8 +99,6 @@
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.sim_actor_wallbox
-    # Batterie zurück in Eigenverbrauch
-    - action: shell_command.batt_self_consumption
     # Überschussladen-Automationen wieder aktivieren (für nächste Umschaltung)
     - action: input_select.select_option
       target:
@@ -314,8 +308,6 @@
         entity_id: input_select.sim_algo_zustand
       data:
         option: "Warte Überschuss"
-    # Batterie zurück in Eigenverbrauch
-    - action: shell_command.batt_self_consumption
     # Sicherstellen, dass Überschussladen-Modus aktiv ist
     - action: input_select.select_option
       target:
